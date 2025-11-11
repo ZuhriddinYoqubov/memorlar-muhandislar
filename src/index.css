@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand: #025C5A;
+  --color-accent: #E59B23;
+}
+
+.input {
+  padding: 0.5rem;
+  border-width: 1px;
+  border-color: rgb(209 213 219);
+  border-radius: 0.75rem;
+  outline: none;
+}
+
+.input:focus {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
