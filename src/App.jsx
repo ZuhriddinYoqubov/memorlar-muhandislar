@@ -370,37 +370,21 @@ export default function App() {
     }, {})
   );
 
-  // Tab holati: birinchi (kalkulyator) yoki ikkinchi (issiqlik) faol
+  // Tab holati: birinchi (kalkulyator) yoki ikkinchisida 'Tez kunda' belgisi
   const [activeTab, setActiveTab] = useState('calculator');
   // 'Tez kunda' popupi ko'rinishi uchun holat
   const [showSoon, setShowSoon] = useState(false);
-  // Global foydalanish hisoblagichi (CountAPI)
-  const [usageCount, setUsageCount] = useState(0);
-  const [counted, setCounted] = useState(false);
+  // Global foydalanish hisoblagichi (hozircha o'chirilgan)
+  // const [usageCount, setUsageCount] = useState(0);
+  // const [counted, setCounted] = useState(false);
 
-  // CountAPI dan joriy hisobni olish
-  useEffect(() => {
-    // Avval lokal saqlangan umumiy hisobni ko'rsatamiz
-    try {
-      const localTotal = Number(window.localStorage.getItem('calc_usage_total') || '0') || 0;
-      setUsageCount(localTotal);
-    } catch {}
-    const ns = 'memorlar-muhandislar';
-    const key = 'calculator-usage';
-    fetch(`/api/counter-get?ns=${encodeURIComponent(ns)}&key=${encodeURIComponent(key)}`)
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => {
-        if (typeof d?.value === 'number') {
-          setUsageCount(d.value);
-          try { window.localStorage.setItem('calc_usage_total', String(d.value)); } catch {}
-        }
-      })
-      .catch(() => { /* offline yoki bloklangan holat: lokal qiymat bilan davom etamiz */ });
-    if (typeof window !== 'undefined') {
-      const s = window.sessionStorage.getItem('calc_usage_counted');
-      if (s === '1') setCounted(true);
-    }
-  }, []);
+  // Counter vaqtincha o'chirilgan
+  // useEffect(() => {
+  //   try {
+  //     const localTotal = Number(window.localStorage.getItem('calc_usage_total') || '0') || 0;
+  //     setUsageCount(localTotal);
+  //   } catch {}
+  // }, []);
 
   /* Input o'zgarishini qabul qilish */
   const handleChange = (e) => {
@@ -526,33 +510,7 @@ export default function App() {
     return `${fmtSoom(SB)} × ${fmt(L_percent)}% × ${fmt(Kc)} × ${fmt(Kp)} = ${fmtSoom(Sw)}`;
   }, [form.SB, L_percent, Kc, Kp, Sw]);
 
-  function incrementOnce() {
-    if (counted) return;
-    // Optimistik: darrov +1 ko'rsatamiz va localStorage ga yozamiz
-    try {
-      const currentLocal = Number(window.localStorage.getItem('calc_usage_total') || String(usageCount)) || 0;
-      const next = currentLocal + 1;
-      window.localStorage.setItem('calc_usage_total', String(next));
-      setUsageCount(next);
-    } catch {
-      setUsageCount((prev) => prev + 1);
-    }
-    setCounted(true);
-    if (typeof window !== 'undefined') window.sessionStorage.setItem('calc_usage_counted', '1');
-
-    // Tarmoq bo'lsa, global hisobni ham yangilashga harakat qilamiz
-    const ns = 'memorlar-muhandislar';
-    const key = 'calculator-usage';
-    fetch(`/api/counter-hit?ns=${encodeURIComponent(ns)}&key=${encodeURIComponent(key)}`)
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => {
-        if (typeof d?.value === 'number') {
-          setUsageCount(d.value);
-          try { window.localStorage.setItem('calc_usage_total', String(d.value)); } catch {}
-        }
-      })
-      .catch(() => { /* offline: optimistik qiymat qoladi */ });
-  }
+  // function incrementOnce() {}
 
   return (
     <div className="min-h-screen bg-[#f9fafb] py-8 px-4">
@@ -617,7 +575,7 @@ export default function App() {
                 )}
               </div>
             </div>
-            <span className="ml-auto text-xs md:text-sm text-gray-500">Foydalanilgan: {usageCount} marta</span>
+            {/* <span className="ml-auto text-xs md:text-sm text-gray-500">Foydalanilgan: {usageCount} marta</span> */}
           </div>
         </div>
       </header>
