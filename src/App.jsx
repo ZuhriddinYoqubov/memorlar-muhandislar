@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 // Yangi: logotip rasmi import qilinadi
 import logo from './assets/logo.png';
 
@@ -374,6 +374,33 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('calculator');
   // 'Tez kunda' popupi ko'rinishi uchun holat
   const [showSoon, setShowSoon] = useState(false);
+  // Global foydalanish hisoblagichi (CountAPI)
+  const [usageCount, setUsageCount] = useState(0);
+  const [counted, setCounted] = useState(false);
+
+  // CountAPI dan joriy hisobni olish
+  useEffect(() => {
+    // Avval lokal saqlangan umumiy hisobni ko'rsatamiz
+    try {
+      const localTotal = Number(window.localStorage.getItem('calc_usage_total') || '0') || 0;
+      setUsageCount(localTotal);
+    } catch {}
+    const ns = 'memorlar-muhandislar';
+    const key = 'calculator-usage';
+    fetch(`https://api.countapi.xyz/get/${ns}/${key}`)
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => {
+        if (typeof d?.value === 'number') {
+          setUsageCount(d.value);
+          try { window.localStorage.setItem('calc_usage_total', String(d.value)); } catch {}
+        }
+      })
+      .catch(() => { /* offline yoki bloklangan holat: lokal qiymat bilan davom etamiz */ });
+    if (typeof window !== 'undefined') {
+      const s = window.sessionStorage.getItem('calc_usage_counted');
+      if (s === '1') setCounted(true);
+    }
+  }, []);
 
   /* Input o'zgarishini qabul qilish */
   const handleChange = (e) => {
@@ -499,6 +526,34 @@ export default function App() {
     return `${fmtSoom(SB)} × ${fmt(L_percent)}% × ${fmt(Kc)} × ${fmt(Kp)} = ${fmtSoom(Sw)}`;
   }, [form.SB, L_percent, Kc, Kp, Sw]);
 
+  function incrementOnce() {
+    if (counted) return;
+    // Optimistik: darrov +1 ko'rsatamiz va localStorage ga yozamiz
+    try {
+      const currentLocal = Number(window.localStorage.getItem('calc_usage_total') || String(usageCount)) || 0;
+      const next = currentLocal + 1;
+      window.localStorage.setItem('calc_usage_total', String(next));
+      setUsageCount(next);
+    } catch {
+      setUsageCount((prev) => prev + 1);
+    }
+    setCounted(true);
+    if (typeof window !== 'undefined') window.sessionStorage.setItem('calc_usage_counted', '1');
+
+    // Tarmoq bo'lsa, global hisobni ham yangilashga harakat qilamiz
+    const ns = 'memorlar-muhandislar';
+    const key = 'calculator-usage';
+    fetch(`https://api.countapi.xyz/hit/${ns}/${key}`)
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => {
+        if (typeof d?.value === 'number') {
+          setUsageCount(d.value);
+          try { window.localStorage.setItem('calc_usage_total', String(d.value)); } catch {}
+        }
+      })
+      .catch(() => { /* offline: optimistik qiymat qoladi */ });
+  }
+
   return (
     <div className="min-h-screen bg-[#f9fafb] py-8 px-4">
       {/* --- Header: logotip va tab navigatsiya (yuqori qism) --- */}
@@ -512,52 +567,57 @@ export default function App() {
                 Me'morlar va Muhandislar
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-600">Aloqa uchun</span>
-              <a
-                href="https://t.me/ZuhriddinYoqubov"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#025C5A] text-[#025C5A] hover:bg-[#025C5A] hover:text-white transition"
-                aria-label="Telegram"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                  <path d="M9.032 15.634 8.84 19.36c.405 0 .581-.174.792-.382l1.9-1.822 3.94 2.887c.722.398 1.237.189 1.435-.668l2.6-12.184.001-.001c.231-1.08-.39-1.5-1.1-1.237L3.79 9.33c-1.06.412-1.043 1.004-.18 1.272l3.9 1.216 9.06-5.72c.426-.258.815-.115.496.143"/>
-                </svg>
-                <span className="text-sm font-medium">Telegram</span>
-              </a>
+            <div className="flex flex-col items-end gap-1">
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-gray-600">Aloqa uchun</span>
+                <a
+                  href="https://t.me/ZuhriddinYoqubov"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#025C5A] text-[#025C5A] hover:bg-[#025C5A] hover:text-white transition"
+                  aria-label="Telegram"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                    <path d="M9.032 15.634 8.84 19.36c.405 0 .581-.174.792-.382l1.9-1.822 3.94 2.887c.722.398 1.237.189 1.435-.668l2.6-12.184.001-.001c.231-1.08-.39-1.5-1.1-1.237L3.79 9.33c-1.06.412-1.043 1.004-.18 1.272l3.9 1.216 9.06-5.72c.426-.258.815-.115.496.143"/>
+                  </svg>
+                  <span className="text-sm font-medium">Telegram</span>
+                </a>
+              </div>
             </div>
           </div>
           {/* Tab navigatsiya: faol tab birinchi, ikkinchisida 'Tez kunda' belgisi */}
-          <div className="mt-4 flex items-center space-x-8">
-            {/* Faol tab */}
-            <div
-              onClick={() => setActiveTab('calculator')}
-              className={`cursor-pointer pb-2 hover:text-[#025C5A] ${activeTab==='calculator' ? 'border-b-2 border-[#025C5A] text-[#025C5A] font-semibold' : 'text-gray-700'}`}
-            >
-              Loyiha qiymati kalkulyatori
-            </div>
-            {/* Ikkinchi tab: bosilganda 'Tez kunda' popup chiqadi */}
-            <div className="relative flex items-center">
+          <div className="mt-4 flex items-center">
+            <div className="flex items-center space-x-8">
+              {/* Faol tab */}
               <div
-                onClick={() => {
-                  // Faqat popup ko'rsatish, aktiv tabni o'zgartirmaymiz
-                  setShowSoon(true);
-                  setTimeout(() => setShowSoon(false), 2000);
-                }}
-                className={`cursor-pointer pb-2 hover:text-[#025C5A] text-gray-700`}
+                onClick={() => setActiveTab('calculator')}
+                className={`cursor-pointer pb-2 hover:text-[#025C5A] ${activeTab==='calculator' ? 'border-b-2 border-[#025C5A] text-[#025C5A] font-semibold' : 'text-gray-700'}`}
               >
-                Issiqlik texnik hisob-kitobi
+                Loyiha qiymati kalkulyatori
               </div>
-              {showSoon && (
-                <div className="absolute -top-10 left-0 z-10 bg-white border border-red-200 shadow-lg rounded-lg px-3 py-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-red-600">Tez kunda</span>
-                  </div>
-                  <div className="absolute left-4 -bottom-2 w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-red-200"></div>
+              {/* Ikkinchi tab: bosilganda 'Tez kunda' popup chiqadi */}
+              <div className="relative flex items-center">
+                <div
+                  onClick={() => {
+                    // Faqat popup ko'rsatish, aktiv tabni o'zgartirmaymiz
+                    setShowSoon(true);
+                    setTimeout(() => setShowSoon(false), 2000);
+                  }}
+                  className={`cursor-pointer pb-2 hover:text-[#025C5A] text-gray-700`}
+                >
+                  Issiqlik texnik hisob-kitobi
                 </div>
-              )}
+                {showSoon && (
+                  <div className="absolute -top-10 left-0 z-10 bg-white border border-red-200 shadow-lg rounded-lg px-3 py-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-red-600">Tez kunda</span>
+                    </div>
+                    <div className="absolute left-4 -bottom-2 w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-red-200"></div>
+                  </div>
+                )}
+              </div>
             </div>
+            <span className="ml-auto text-xs md:text-sm text-gray-500">Foydalanilgan: {usageCount} marta</span>
           </div>
         </div>
       </header>
