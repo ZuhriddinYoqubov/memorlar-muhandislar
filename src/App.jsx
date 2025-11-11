@@ -387,7 +387,7 @@ export default function App() {
     } catch {}
     const ns = 'memorlar-muhandislar';
     const key = 'calculator-usage';
-    fetch(`https://api.countapi.xyz/get/${ns}/${key}`)
+    fetch(`/api/counter-get?ns=${encodeURIComponent(ns)}&key=${encodeURIComponent(key)}`)
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => {
         if (typeof d?.value === 'number') {
@@ -543,7 +543,7 @@ export default function App() {
     // Tarmoq bo'lsa, global hisobni ham yangilashga harakat qilamiz
     const ns = 'memorlar-muhandislar';
     const key = 'calculator-usage';
-    fetch(`https://api.countapi.xyz/hit/${ns}/${key}`)
+    fetch(`/api/counter-hit?ns=${encodeURIComponent(ns)}&key=${encodeURIComponent(key)}`)
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => {
         if (typeof d?.value === 'number') {
