@@ -1,0 +1,38 @@
+# --- Line endings ---
+# All text files use LF, never CRLF
+* text eol=lf
+
+# --- Treat specific file types as text ---
+*.js     text
+*.jsx    text
+*.ts     text
+*.tsx    text
+*.json   text
+*.css    text
+*.scss   text
+*.html   text
+*.md     text
+*.yml    text
+*.yaml   text
+*.env    text
+*.gitignore text
+
+# --- Images & binaries ---
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.svg  binary
+*.ico  binary
+*.pdf  binary
+
+# --- Fonts ---
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+
+# --- Do not modify line endings for lock files ---
+package-lock.json -text
+yarn.lock         -text
+pnpm-lock.yaml    -text
