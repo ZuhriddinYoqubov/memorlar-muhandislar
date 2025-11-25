@@ -414,7 +414,7 @@ export function ConstructionIndicatorsPanel({
                 </p>
                 <p
                   className={
-                    "mt-1 text-2xl font-semibold text-center " +
+                    "mt-1 text-2xl font-bold text-center " +
                     (isCompliant ? "text-emerald-600" : "text-red-600")
                   }
                 >

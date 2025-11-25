@@ -3,19 +3,25 @@ import { createPortal } from "react-dom";
 import { REGIONS } from "./data/regions";
 import { ProtectionLevelNoteText } from "./heatSharedTexts";
 import { CustomSelect, CustomRegionSelect } from "./controls/HeatSelects";
-import { AirLayerControls, ConstructionIndicatorsSkeleton } from "./controls/ConstructionBlocks";
+import { AirLayerControls, ConstructionIndicatorsSkeleton, ConstructionIndicatorsPanel } from "./controls/ConstructionBlocks";
+import { EshikDarvozaStep } from "./controls/EshikDarvozaStep";
+import { DerazaBalkonStep } from "./controls/DerazaBalkonStep";
+import { InitialDataBlock } from "./controls/InitialDataBlock";
+import { NormativeQStep } from "./controls/NormativeQStep";
 import { WizardPrimaryButton, WizardSecondaryButton } from "./controls/WizardButtons";
 import { MaterialTreeModal } from "./controls/MaterialTreeModal";
+import { MaterialLayersTable } from "./controls/MaterialLayersTable";
+import { ProtectionLevelInfoModal, RibHeightInfoModal } from "./controls/InfoModals";
 import { CONSTRUCTION_TYPES } from "./data/constructionTypes";
 import {
   computeDeltaTt,
   mapConstructionTypeToId,
   getNByConstructionId,
   getRoPrFromTables,
+  getRoTalForDerazaFonar,
 } from "./data/heatCalculations";
 
 // Bosqichli "Heat Wizard" – issiqlik texnik hisobni bosqichma-bosqich kiritish uchun yangi interfeys.
-// Mavjud "IssiqlikTexnikHisob" sahifasidagi hisoblash mantiqini soddalashtirilgan, user-friendly shaklda ko'rsatadi.
 
 // STEPS – mantiqiy bosqichlar ro'yxati (ID, sarlavha va izohlar).
 const STEPS = [
@@ -71,7 +77,12 @@ function StepBadge({ label, isActive, isCompleted, hasError }) {
 
 // HeatWizard – barcha stepper, formalar va modallarni birlashtiruvchi asosiy komponent.
 export default function HeatWizard() {
-  const [activeIndex, setActiveIndex] = useState(0); // hozirgi displayStep indeksi
+  const [activeIndex, setActiveIndex] = useState(() => {
+    if (typeof window === "undefined") return 0;
+    const saved = window.localStorage.getItem("heatWizardActiveIndex");
+    const parsed = saved != null ? Number(saved) : NaN;
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+  }); // hozirgi displayStep indeksi
   const [heatCalcRunIndex, setHeatCalcRunIndex] = useState(0); // Issiqlik texnik hisob (2.n) tartib raqami
 
   // Issiqlik texnik hisoblari uchun dinamik 2.n steplar (boshlang'ichda bo'sh, birinchi modal tanlovida 2-step sifatida qo'shiladi)
@@ -170,6 +181,7 @@ export default function HeatWizard() {
   const [constructionType, setConstructionType] = useState("");
   const [ribHeightRatio, setRibHeightRatio] = useState("");
   const [showRibInfo, setShowRibInfo] = useState(false); // h/a eslatma modali
+  const [derazaType, setDerazaType] = useState(""); // Deraza va balkon eshiklari turi
 
   // Qatlamlar bo'yicha termik qarshilik: R_layers = Σ (d/λ)
   const R_layers = useMemo(() => {
@@ -284,11 +296,93 @@ export default function HeatWizard() {
   // Foydalanuvchi issiqlik texnik hisob bosqichlaridan (heat_calc_1 yoki heat_calc_n) biriga kamida bir marta kirganmi
   const [hasHeatCalcVisited, setHasHeatCalcVisited] = useState(false);
 
+  // Active step indeksini localStorage ga saqlab boramiz, sahifa yangilanganda o'sha step tiklanishi uchun
+  useEffect(() => {
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("heatWizardActiveIndex", String(activeIndex));
+      }
+    } catch (e) {
+      // agar localStorage mavjud bo'lmasa yoki xato bo'lsa, shunchaki e'tiborsiz qoldiramiz
+    }
+  }, [activeIndex]);
+
   // Foydalanuvchi kamida bir marta dastlabki bosqichdan keyingi bosqich(lar)ga o'tganligini belgilash uchun flag
   const [hasLeftInitialOnce, setHasLeftInitialOnce] = useState(false);
 
   // 2-bosqichga o'tishda tanlov oynasini ko'rsatish uchun flag
   const [showNextStepChoice, setShowNextStepChoice] = useState(false);
+
+  // Har bir issiqlik bosqichi (2.1, 2.2, ...) uchun alohida saved state saqlash
+  const saveHeatStepState = (stepId) => {
+    if (!stepId) return;
+    setHeatSteps((prev) =>
+      prev.map((step) =>
+        step.id === stepId && step.kind === "heat"
+          ? {
+              ...step,
+              savedState: {
+                constructionType,
+                ribHeightRatio,
+                derazaType,
+                layers,
+                airLayer,
+              },
+            }
+          : step,
+      ),
+    );
+  };
+
+  const loadHeatStepState = (stepMeta) => {
+    if (!stepMeta || stepMeta.kind !== "heat") return;
+
+    const saved = stepMeta.savedState;
+    if (saved) {
+      // Saqlangan holatni tiklash
+      setConstructionType(saved.constructionType || "");
+      setRibHeightRatio(saved.ribHeightRatio || "");
+      setDerazaType(saved.derazaType || "");
+      setLayers(Array.isArray(saved.layers) && saved.layers.length > 0 
+        ? saved.layers 
+        : [{ id: Date.now(), name: "Qurilish materiali", thickness_mm: "", rho: "", lambda: "", mu: 10 }]
+      );
+      setAirLayer(saved.airLayer || { enabled: false, thickness_mm: "", layerTemp: "positive", foilBothSides: false });
+      return;
+    }
+
+    // Agar savedState yo'q bo'lsa, default/preset holatni o'rnatish
+    setConstructionType(stepMeta.presetConstructionType || "");
+    setRibHeightRatio("");
+    setDerazaType("");
+    setLayers([{ id: Date.now(), name: "Qurilish materiali", thickness_mm: "", rho: "", lambda: "", mu: 10 }]);
+    setAirLayer({ enabled: false, thickness_mm: "", layerTemp: "positive", foilBothSides: false });
+  };
+
+  const syncHeatStepState = (currentIndex, nextIndex) => {
+    if (
+      currentIndex == null ||
+      nextIndex == null ||
+      currentIndex === nextIndex ||
+      !Array.isArray(displaySteps) ||
+      displaySteps.length === 0
+    ) {
+      return;
+    }
+
+    const currentStep = displaySteps[currentIndex];
+    const nextStep = displaySteps[nextIndex];
+
+    if (currentStep && (currentStep.kind === "heat" || currentStep.id === "heat_placeholder")) {
+      if (currentStep.kind === "heat") {
+        saveHeatStepState(currentStep.id);
+      }
+    }
+
+    if (nextStep && nextStep.kind === "heat") {
+      loadHeatStepState(nextStep);
+    }
+  };
 
   const moveLayer = (sourceId, targetId) => {
     if (!sourceId || !targetId || sourceId === targetId) return;
@@ -336,27 +430,38 @@ export default function HeatWizard() {
   const currentDisplayStep = displaySteps[activeIndex] || displaySteps[0];
   const isHeatLikeStep = currentDisplayStep?.kind === "heat" || currentDisplayStep?.id === "heat_placeholder";
   const currentStepId = isHeatLikeStep ? "heat_calc_1" : currentDisplayStep?.id || "initial";
-  
+
   // Get the base step meta
   const baseStepMeta = STEPS.find((s) => s.id === currentStepId) || STEPS[0];
-  
+
   // If it's a heat calculation step, show the construction type in the title
   const currentStepMeta = useMemo(() => {
     const meta = { ...baseStepMeta };
-    
+
     if (currentStepId === "heat_calc_1") {
       // For heat calculation steps, get the construction type from the current step
       const currentConstructionType = currentDisplayStep?.presetConstructionType || constructionType;
       if (currentConstructionType) {
-        const type = CONSTRUCTION_TYPES.find(ct => ct.value === currentConstructionType);
+        const type = CONSTRUCTION_TYPES.find((ct) => ct.value === currentConstructionType);
         if (type) {
           meta.title = type.label;
         }
       }
     }
-    
+
     return meta;
   }, [baseStepMeta, currentStepId, currentDisplayStep, constructionType]);
+
+  // Filter construction types based on presetConstructionType
+  // If presetConstructionType is null (to'suvchi konstruksiya selected), exclude eshik_darvoza and deraza_balkon_eshiklari
+  const filteredConstructionTypes = useMemo(() => {
+    if (currentStepId === "heat_calc_1" && currentDisplayStep?.presetConstructionType === null) {
+      return CONSTRUCTION_TYPES.filter(
+        (type) => type.value !== "eshik_darvoza" && type.value !== "deraza_balkon_eshiklari"
+      );
+    }
+    return CONSTRUCTION_TYPES;
+  }, [currentStepId, currentDisplayStep]);
 
   // Step o'zgarganda sahifani yuqoriga scroll qilish
   useEffect(() => {
@@ -417,7 +522,7 @@ export default function HeatWizard() {
   // To'suvchi konstruksiyalarning ichki yuzasining issiqlik berish koeffitsienti, αi (ITH dagi 5-jadval mantiqi bo'yicha)
   const alphaI = useMemo(() => {
     if (!constructionType) return null;
-    if (constructionType === "tashqi_devor" || constructionType === "tashqi_devor_ventfasad") return 8.7;
+    if (constructionType === "tashqi_devor" || constructionType === "tashqi_devor_ventfasad" || constructionType === "eshik_darvoza") return 8.7;
     if (!ribHeightRatio) return null;
     if (ribHeightRatio === "low") return 8.7;
     if (ribHeightRatio === "high") return 7.6;
@@ -522,17 +627,27 @@ export default function HeatWizard() {
     return numerator / denominator;
   }, [constructionType, deltaTtResult, alphaI, climate.t_in, climate.t_out, initial.objectType, climate.phi_in]);
 
-  // Eshik (balkonlarnikidan tashqari) va darvozalarning talab etilgan issiqlik uzatilishiga qarshiligi, RₒTal.e.d
+  // Eshik (balkonlarnikidan tashqari) va darvozalarning talab etilgan issiqlik uzatili  // Eshik va darvozalar uchun RoTal.e.d = 0.6 * RoTal.SG
   const RoTalED = useMemo(() => {
-    return typeof RoTalSG === "number" && Number.isFinite(RoTalSG) ? 0.6 * RoTalSG : null;
+    if (RoTalSG == null) return null;
+    return 0.6 * RoTalSG;
   }, [RoTalSG]);
 
-  const RoTalab = useMemo(() => {
-    const a = typeof RoTalSG === "number" && Number.isFinite(RoTalSG) ? RoTalSG : null;
-    const b = RoResult && typeof RoResult.Ro === "number" && Number.isFinite(RoResult.Ro)
-      ? RoResult.Ro
-      : null;
+  // Deraza va fonarlar uchun RoTal.D.F. (jadvaldan)
+  const RoTalDF = useMemo(() => {
+    if (!derazaType || !initial.protectionLevel || !initial.objectType || !heatingSeason.D_is_dav) return null;
+    return getRoTalForDerazaFonar({
+      protectionLevel: initial.protectionLevel,
+      objectType: initial.objectType,
+      D_is_dav: heatingSeason.D_is_dav,
+      derazaType,
+    });
+  }, [derazaType, initial.protectionLevel, initial.objectType, heatingSeason.D_is_dav]);
 
+  // RoTalab = max(RoTal.SG, RoResult.Ro)
+  const RoTalab = useMemo(() => {
+    const a = RoTalSG;
+    const b = RoResult?.Ro;
     if (a == null && b == null) return null;
     if (a == null) return b;
     if (b == null) return a;
@@ -634,7 +749,12 @@ export default function HeatWizard() {
       }
       // Aks holda (foydalanuvchi allaqachon keyingi bosqichlarga o'tib qaytgan bo'lsa),
       // oddiy navbatdagi displayStepga o'tkazamiz.
-      setActiveIndex((i) => (i < displaySteps.length - 1 ? i + 1 : i));
+      setActiveIndex((i) => {
+        const isLast = i >= displaySteps.length - 1;
+        const nextIndex = isLast ? i : i + 1;
+        syncHeatStepState(i, nextIndex);
+        return nextIndex;
+      });
       return;
     }
 
@@ -650,6 +770,8 @@ export default function HeatWizard() {
       const isLast = i >= displaySteps.length - 1;
       const nextIndex = isLast ? i : i + 1;
 
+      syncHeatStepState(i, nextIndex);
+
       if (isLast) {
         // Oxirgi bosqichda esa foydalanuvchidan keyingi modul haqida tanlov so'rash uchun modal ochamiz
         setShowNextStepChoice(true);
@@ -661,7 +783,11 @@ export default function HeatWizard() {
 
   // Oldingi bosqichga qaytish handleri
   const goPrev = () => {
-    setActiveIndex((i) => (i > 0 ? i - 1 : i));
+    setActiveIndex((i) => {
+      const nextIndex = i > 0 ? i - 1 : i;
+      syncHeatStepState(i, nextIndex);
+      return nextIndex;
+    });
   };
 
   // Stepperdagi bosqich tugmalarini bosganda ishlaydigan handler
@@ -702,6 +828,7 @@ export default function HeatWizard() {
       return;
     }
 
+    syncHeatStepState(activeIndex, idx);
     setActiveIndex(idx);
   };
 
@@ -920,39 +1047,10 @@ export default function HeatWizard() {
                     ]}
                   />
 
-                  {showProtectionInfo &&
-                    createPortal(
-                      <div
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
-                        onClick={(e) => {
-                          const target = e.target;
-                          if (target instanceof HTMLElement && target.classList.contains("fixed")) {
-                            setShowProtectionInfo(false);
-                          }
-                        }}
-                      >
-                        <div
-                          className="bg-white rounded-2xl shadow-xl max-w-xl w-full mx-4 p-6 text-sm text-gray-800"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <div className="flex items-start justify-between gap-4 mb-3">
-                            <h2 className="text-base font-semibold text-gray-900">
-                              Issiqlik himoyasi darajalari bo'yicha eslatma
-                            </h2>
-                            <button
-                              type="button"
-                              className="text-gray-400 hover:text-gray-600"
-                              onClick={() => setShowProtectionInfo(false)}
-                              aria-label="Yopish"
-                            >
-                              ×
-                            </button>
-                          </div>
-                          <ProtectionLevelNoteText />
-                        </div>
-                      </div>,
-                      document.body
-                    )}
+                  <ProtectionLevelInfoModal 
+                    open={showProtectionInfo} 
+                    onClose={() => setShowProtectionInfo(false)} 
+                  />
                 </div>
               </div>
             
@@ -1080,363 +1178,172 @@ export default function HeatWizard() {
           )}
 
           {currentStepId === "normative_q" && (
-            <div className="text-sm text-gray-700 space-y-3">
-              <p>
-                Bu bosqichda [obekt_nomi] isitishga me'yoriy solishtirma issiqlik sarfi Q<sub className="align-baseline text-[0.7em]">n</sub>
-                ni aniqlash uchun zarur bo'lgan parametrlar (isitish davri gradus-sutkasi, ichki harorat va h.k.)
-                kiritiladi. Hozircha bu qism skelet holatida, keyingi bosqichda aniq formulalar bilan to'ldiriladi.
-              </p>
-            </div>
+            <NormativeQStep 
+              objectName={initial.objectName}
+              climate={climate}
+              heatingSeason={heatingSeason}
+              layers={layers}
+            />
           )}
 
           {currentStepId === "heat_calc_1" && (
             <div className="space-y-6 text-sm text-gray-700">
               {constructionType === "eshik_darvoza" && (
-                <section className="space-y-3">
-                  <h3 className="text-lg md:text-xl font-semibold text-gray-900">Dastlabki ma'lumotlar</h3>
-
-                  {/* Hudud va ichki harorat – alohida qatorda */}
-                  <div className="space-y-2 text-[0.9rem]">
-                    <div className="flex items-baseline justify-between gap-3">
-                      <span className="font-medium">Hudud</span>
-                      <span className="text-right text-[#1080c2] font-semibold">{hududLabel}</span>
-                    </div>
-                    <div className="border-t border-dashed border-gray-200" />
-                    <div className="flex items-baseline justify-between gap-3 pt-1">
-                      <span className="font-medium">
-                        Ichki havoning hisobiy harorati t
-                        <sub className="align-baseline text-[0.7em]">i</sub> °C
-                      </span>
-                      <span className="text-right text-[#1080c2] font-semibold">
-                        {climate.t_in != null && climate.t_in !== ""
-                          ? `${climate.t_in} °C`
-                          : "—"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Iqlimiy hosila qiymatlar – 1-bosqichdagi matnlar bilan */}
-                  <div className="space-y-3 text-[0.9rem] text-gray-800 pt-2 border-t border-dashed border-gray-200">
-                    <div className="pt-1 first:pt-0">
-                      <p className="flex items-baseline gap-x-2 gap-y-1 font-medium w-full">
-                        <span className="leading-snug flex-1 text-justify">
-                          O'rtacha kunlik havo harorati 10 °C dan kam yoki unga teng bo'lgan davrning o'rtacha
-                          harorati, t
-                          <sub className="align-baseline text-[0.75em]">is.dav</sub>
-                        </span>
-                        <span className="font-semibold text-[#1080c2] text-right whitespace-nowrap">
-                          {heatingSeason.t_is_dav != null ? `${heatingSeason.t_is_dav.toFixed(1)} °C` : "—"}
-                        </span>
-                      </p>
-                      <p className="text-xs text-gray-500 italic mt-1">
-                        QMQ 2.01.01-22 "Loyihalash uchun iqlimiy va fizikaviy-geologik maʼlumotlar" 4-jadval
-                        "Tashqi havoning parametrlari", 20–22-qatorlar o'rtacha qiymati
-                      </p>
-                    </div>
-
-                    <div className="pt-2 border-t border-dashed border-gray-200">
-                      <p className="flex items-baseline gap-x-2 gap-y-1 font-medium w-full">
-                        <span className="leading-snug flex-1 text-justify">
-                          O'rtacha kunlik havo harorati 10 °C dan kam yoki unga teng bo'lgan davrning davomiyligi,
-                          Z
-                          <sub className="align-baseline text-[0.75em]">is.dav</sub>
-                        </span>
-                        <span className="font-semibold text-[#1080c2] text-right whitespace-nowrap">
-                          {heatingSeason.Z_is_dav != null ? `${heatingSeason.Z_is_dav.toFixed(0)} sutka` : "—"}
-                        </span>
-                      </p>
-                      <p className="text-xs text-gray-500 italic mt-1">
-                        QMQ 2.01.01-22 "Loyihalash uchun iqlimiy va fizikaviy-geologik maʼlumotlar" 4-jadval
-                        "Tashqi havoning parametrlari", 19–21-qatorlar o'rtacha qiymati
-                      </p>
-                    </div>
-
-                    <div className="pt-2 border-t border-dashed border-gray-200">
-                      <p className="flex items-baseline gap-x-2 gap-y-1 font-medium w-full">
-                        <span className="leading-snug flex-1 text-justify">
-                          Tashqi havoning hisobiy qishki harorati, t
-                          <sub className="align-baseline text-[0.75em]">t</sub>
-                        </span>
-                        <span className="font-semibold text-[#1080c2] text-right whitespace-nowrap">
-                          {climate.t_out != null ? `${climate.t_out} °C` : "—"}
-                        </span>
-                      </p>
-                      <p className="text-xs text-gray-500 italic mt-1">
-                        QMQ 2.01.01-22 bo'yicha ta'minlanganligi 0,92 bo'lgan eng sovuq besh kunlikning o'rtacha
-                        haroratiga teng. 4-jadval "Tashqi havoning parametrlari", 17-qator
-                      </p>
-                    </div>
-
-                    {/* Devorning talab etilgan issiqlik uzatilishiga qarshiligi, RₒTal.SG */}
-                    <div className="pt-2 border-t border-dashed border-gray-200">
-                      <p className="flex items-baseline gap-x-2 gap-y-1 font-medium w-full">
-                        <span className="leading-snug flex-1 text-justify">
-                          Sanitariya-gigiena talablariga muvofiq me'yriy (ruxsat etilgan maksimal) qarshilik, R
-                          <sub className="align-baseline text-[0.75em]">o</sub>
-                          <sup className="align-baseline text-[0.75em]">Tal.SG</sup>
-                        </span>
-                        <span className="font-semibold text-[#1080c2] text-right whitespace-nowrap">
-                          {RoTalSG != null ? `${RoTalSG.toFixed(2)} m²·°C/Vt` : "—"}
-                        </span>
-                      </p>
-                    </div>
-
-                    {/* Eshik (balkonlarnikidan tashqari) va darvozalarning talab etilgan issiqlik uzatilishiga qarshiligi, RₒTal.e.d */}
-                    <div className="pt-2 border-t border-dashed border-gray-200">
-                      <p className="flex items-baseline gap-x-2 gap-y-1 font-medium w-full">
-                        <span className="leading-snug flex-1 text-justify">
-                          Eshik (balkonlarnikidan tashqari) va darvozalarning talab etilgan issiqlik uzatilishiga
-                          qarshiligi, R
-                          <sub className="align-baseline text-[0.75em]">o</sub>
-                          <sup className="align-baseline text-[0.75em]">Tal.e.d</sup>
-                        </span>
-                        <span className="font-semibold text-[#1080c2] text-right whitespace-nowrap">
-                          {RoTalED != null ? `${RoTalED.toFixed(2)} m²·°C/Vt` : "—"}
-                        </span>
-                      </p>
-                      <p className="text-xs text-gray-500 italic mt-1">
-                        Eshik va darvozalar issiqlik uzatilishiga talab etilgan qarshiligi devorlarning sanitariya-gigena talablariga javob beradigan qarshiligining kamida 0,6 qismidan kam bo'lmasligi kerak (QMQ 2.01.04-18, 2.2).
-                      </p>
-                    </div>
-                  </div>
-                </section>
+                <EshikDarvozaStep
+                  hududLabel={hududLabel}
+                  climate={climate}
+                  heatingSeason={heatingSeason}
+                  RoTalSG={RoTalSG}
+                  RoTalED={RoTalED}
+                  Rk={Rk}
+                  Ro_calc={Ro_calc}
+                  RoResult={RoResult}
+                  alphaI={alphaI}
+                  alphaT={alphaT}
+                  layers={layers}
+                  updateLayer={updateLayer}
+                  removeLayer={removeLayer}
+                  setMaterialModal={setMaterialModal}
+                  draggingLayerId={draggingLayerId}
+                  setDraggingLayerId={setDraggingLayerId}
+                  moveLayer={moveLayer}
+                  addLayer={addLayer}
+                  airLayer={airLayer}
+                  setAirLayer={setAirLayer}
+                />
               )}
 
-              {constructionType !== "eshik_darvoza" && (
-                <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-                  <div className="w-full">
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Konstruksiya turi</label>
-                    <CustomSelect
-                      value={constructionType}
-                      onChange={(val) => setConstructionType(val)}
-                      error={currentStepId === "heat_calc_1" && !constructionType}
-                      placeholder="Tanlang"
-                      options={CONSTRUCTION_TYPES}
+              {constructionType === "deraza_balkon_eshiklari" && (
+                <DerazaBalkonStep
+                  hududLabel={hududLabel}
+                  climate={climate}
+                  heatingSeason={heatingSeason}
+                  RoTalSG={RoTalSG}
+                  RoTalED={RoTalED}
+                  RoTalDF={RoTalDF}
+                  Rk={Rk}
+                  Ro_calc={Ro_calc}
+                  RoResult={RoResult}
+                  alphaI={alphaI}
+                  alphaT={alphaT}
+                  derazaType={derazaType}
+                  setDerazaType={setDerazaType}
+                  protectionLevel={initial.protectionLevel}
+                  layers={layers}
+                  updateLayer={updateLayer}
+                  removeLayer={removeLayer}
+                  setMaterialModal={setMaterialModal}
+                  draggingLayerId={draggingLayerId}
+                  setDraggingLayerId={setDraggingLayerId}
+                  moveLayer={moveLayer}
+                  addLayer={addLayer}
+                  airLayer={airLayer}
+                  setAirLayer={setAirLayer}
+                />
+              )}
+
+              {constructionType !== "eshik_darvoza" && constructionType !== "deraza_balkon_eshiklari" && (
+                <>
+                  <InitialDataBlock 
+                    hududLabel={hududLabel}
+                    climate={climate}
+                    heatingSeason={heatingSeason}
+                  />
+
+                  <div className="mt-6 bg-white rounded-2xl border border-[#E5E7EB] p-4 md:p-6 shadow-sm space-y-6">
+                    {/* 1-qism: Konstruksiya turi va h/a */}
+                  <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+                    <div className="w-full">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Konstruksiya turi</label>
+                      <CustomSelect
+                        value={constructionType}
+                        onChange={(val) => setConstructionType(val)}
+                        error={currentStepId === "heat_calc_1" && !constructionType}
+                        placeholder="Tanlang"
+                        options={filteredConstructionTypes}
+                      />
+                    </div>
+
+                    {constructionType &&
+                      constructionType !== "tashqi_devor" &&
+                      constructionType !== "tashqi_devor_ventfasad" && (
+                        <div className="w-full md:basis-1/3">
+                          <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                            <span>Qovurg'a balandligi nisbati, h/a</span>
+                            <button
+                              type="button"
+                              className="w-4 h-4 flex items-center justify-center rounded-full border border-gray-400 text-[10px] text-gray-600 hover:bg-gray-100"
+                              onClick={() => setShowRibInfo(true)}
+                              aria-label="Qovurg'a balandligi nisbati haqida eslatma"
+                            >
+                              ?
+                            </button>
+                          </label>
+                          <CustomSelect
+                            value={ribHeightRatio}
+                            onChange={(val) => setRibHeightRatio(val)}
+                            placeholder="h/a nisbatini tanlang"
+                            options={[
+                            { value: "low", label: "h/a ≤ 0.3" },
+                              { value: "high", label: "h/a > 0.3" },
+                            ]}
+                          />
+                        </div>
+                      )}
+                  </div>
+
+                  {/* 2-qism: Materiallar jadvali va havo qatlami */}
+                  <div>
+                    <MaterialLayersTable
+                      layers={layers}
+                      updateLayer={updateLayer}
+                      removeLayer={removeLayer}
+                      setMaterialModal={setMaterialModal}
+                      draggingLayerId={draggingLayerId}
+                      setDraggingLayerId={setDraggingLayerId}
+                      moveLayer={moveLayer}
+                    />
+
+                    <div className="mt-4 flex flex-col gap-4">
+                      <button
+                        type="button"
+                        onClick={addLayer}
+                        className="px-4 py-2 rounded-lg bg-[#1080c2] text-white text-sm self-start"
+                      >
+                        Qatlam qo'shish
+                      </button>
+
+                      <AirLayerControls airLayer={airLayer} onChange={setAirLayer} />
+                    </div>
+                  </div>
+                </div>
+                </>
+              )}
+              <RibHeightInfoModal 
+                open={showRibInfo} 
+                onClose={() => setShowRibInfo(false)} 
+              />
+
+              {/* Material blokidan keyin ko'rsatkichlar paneli (faqat deraza/balkon eshiklari bo'lmaganda) */}
+              {constructionType &&
+                constructionType !== "eshik_darvoza" &&
+                constructionType !== "deraza_balkon_eshiklari" && (
+                  <div className="mt-6">
+                    <ConstructionIndicatorsPanel
+                      deltaTtResult={deltaTtResult}
+                      alphaI={alphaI}
+                      alphaT={alphaT}
+                      heatingSeason={heatingSeason}
+                      RoTalSG={RoTalSG}
+                      RoTalab={RoTalab}
+                      RoResult={RoResult}
+                      Rk={Rk}
+                      Ro_calc={Ro_calc}
+                      initial={initial}
+                      constructionType={constructionType}
                     />
                   </div>
-
-                  {constructionType &&
-                    constructionType !== "tashqi_devor" &&
-                    constructionType !== "tashqi_devor_ventfasad" && (
-                      <div className="w-full md:basis-1/3">
-                        <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                          <span>Qovurg'a balandligi nisbati, h/a</span>
-                          <button
-                            type="button"
-                            className="w-4 h-4 flex items-center justify-center rounded-full border border-gray-400 text-[10px] text-gray-600 hover:bg-gray-100"
-                            onClick={() => setShowRibInfo(true)}
-                            aria-label="Qovurg'a balandligi nisbati haqida eslatma"
-                          >
-                            ?
-                          </button>
-                        </label>
-                        <CustomSelect
-                          value={ribHeightRatio}
-                          onChange={(val) => setRibHeightRatio(val)}
-                          placeholder="h/a nisbatini tanlang"
-                          options={[
-                            { value: "low", label: "h/a ≤ 0.3" },
-                            { value: "high", label: "h/a > 0.3" },
-                          ]}
-                        />
-                      </div>
-                    )}
-                </div>
-              )}
-              {showRibInfo &&
-                createPortal(
-                  <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
-                    onClick={() => setShowRibInfo(false)}
-                  >
-                    <div
-                      className="bg-white rounded-2xl shadow-xl max-w-xl w-full mx-4 p-6 text-sm text-gray-800"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="flex items-start justify-between gap-4 mb-3">
-                        <h2 className="text-base font-semibold text-gray-900">
-                          Qovurg'a balandligi nisbati, h/a bo'yicha eslatma
-                        </h2>
-                        <button
-                          type="button"
-                          className="text-gray-400 hover:text-gray-600"
-                          onClick={() => setShowRibInfo(false)}
-                          aria-label="Yopish"
-                        >
-                          ×
-                        </button>
-                      </div>
-                      <p className="text-sm text-gray-700">
-                        Orayopma tekis yoki turtib chiqgan qovurg'alari balandligi h-ning qo'shni qovurg'alar qirralari
-                        orasidagi masofa a-ga nisbati 0.3 gacha bo'lsa h/a ≤ 0.3 tanlang.
-                      </p>
-                    </div>
-                  </div>,
-                  document.body
                 )}
-              {constructionType !== "eshik_darvoza" && (
-                <div className="mt-6 bg-white rounded-2xl border border-[#E5E7EB] p-4 md:p-6 shadow-sm">
-                  <h2 className="text-lg md:text-xl font-semibold text-gray-900 mb-4">
-                    To'suvchi konstruksiya materiallarining xususiyatlari
-                  </h2>
-
-                  <div className="overflow-x-auto rounded-xl border border-[#E5E7EB]">
-                    <table className="min-w-full text-xs md:text-sm">
-                      <thead>
-                        <tr className="text-gray-600 bg-gray-50">
-                          <th className="py-2 px-3 text-center">#</th>
-                          <th className="py-2 px-3 text-left w-4/5">
-                            <div className="flex items-center gap-3">
-                              <div className="leading-tight">
-                                <div>
-                                  Material
-                                  <span className="ml-2 italic font-normal">(Tashqaridan ichkariga)</span>
-                                </div>
-                              </div>
-                            </div>
-                          </th>
-                          <th className="py-2 px-3 text-center leading-tight">
-                            <div>
-                              <span>
-                                Qalinlik <span className="text-[#1080c2]">δ</span>
-                              </span>
-                              <br />
-                              <span>mm</span>
-                            </div>
-                          </th>
-                          <th className="py-2 px-2 text-center leading-tight">
-                            <div>
-                              Zichlik <span className="text-[#1080c2]">
-                                γ
-                              </span>
-                              <sub className="align-baseline text-[0.7em] text-[#1080c2]">0</sub>, kg/m³
-                            </div>
-                          </th>
-                          <th className="py-2 px-3 text-center leading-tight">
-                            <div>
-                              Issiqlik o'tk.lik <span className="text-[#1080c2]">
-                                λ
-                              </span>
-                            </div>
-                          </th>
-                          <th className="py-2 px-2 text-center leading-tight">
-                            <div>
-                              Termik qarshilik <span className="text-[#1080c2]">R</span>
-                            </div>
-                          </th>
-                          <th className="py-2 px-3 text-center leading-tight">
-                            <div>Amal</div>
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {layers.map((L, idx) => {
-                          const d_m = (Number(L.thickness_mm) || 0) / 1000;
-                          const lam = Number(L.lambda) || 0;
-                          const R = d_m > 0 && lam > 0 ? d_m / lam : 0;
-                          return (
-                            <tr
-                              key={L.id}
-                              className="border-t border-[#E5E7EB]"
-                              draggable
-                              onDragStart={() => setDraggingLayerId(L.id)}
-                              onDragOver={(e) => {
-                                e.preventDefault();
-                                if (draggingLayerId && draggingLayerId !== L.id) {
-                                  moveLayer(draggingLayerId, L.id);
-                                }
-                              }}
-                              onDragEnd={() => setDraggingLayerId(null)}
-                            >
-                              <td className="py-2 pr-4 pl-3">{idx + 1}</td>
-                              <td className="py-2 pr-4 align-top">
-                                <div className="w-full max-w-none">
-                                  <div className="flex items-center gap-3">
-                                    <button
-                                      type="button"
-                                      onClick={() => setMaterialModal({ open: true, layerId: L.id })}
-                                      className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[#E5E7EB] bg-gray-50 text-sm text-gray-800 hover:bg-gray-100"
-                                    >
-                                      <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        className="w-4 h-4 text-[#1080c2]"
-                                      >
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 7h14M5 12h14M5 17h14" />
-                                      </svg>
-                                      <span>{L.name || "Material tanlang"}</span>
-                                    </button>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="py-2 pr-4 text-center">
-                                <input
-                                  type="number"
-                                  value={L.thickness_mm}
-                                  onChange={(e) => updateLayer(L.id, "thickness_mm", e.target.value)}
-                                  className="w-28 px-3 py-2 rounded-lg border border-[#E5E7EB] bg-gray-50 text-right"
-                                />
-                              </td>
-                              <td className="py-2 pr-4 text-center">
-                                <span className="inline-block min-w-[4.5rem] text-center">
-                                  {L.rho != null && L.rho !== "" ? Number(L.rho) : ""}
-                                </span>
-                              </td>
-                              <td className="py-2 pr-4 text-center">
-                                <span className="inline-block min-w-[4.5rem] text-center">
-                                  {L.lambda != null && L.lambda !== "" ? Number(L.lambda).toFixed(3) : ""}
-                                </span>
-                              </td>
-                              <td className="py-2 pr-4 text-center">
-                                <span className="inline-block min-w-[4.5rem] text-center">
-                                  {R > 0 ? R.toFixed(3) : ""}
-                                </span>
-                              </td>
-                              <td className="py-2 pr-4 text-center">
-                                <button
-                                  onClick={() => removeLayer(L.id)}
-                                  aria-label="O'chirish"
-                                  className="p-2 rounded-lg border text-red-600 border-red-300 hover:bg-red-50 inline-flex items-center justify-center"
-                                >
-                                  <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className="w-5 h-5"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-1-2a1 1 0 00-1-1h-2a1 1 0 00-1 1v2"
-                                    />
-                                  </svg>
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <div className="mt-4 flex flex-col gap-4">
-                    <button
-                      type="button"
-                      onClick={addLayer}
-                      className="px-4 py-2 rounded-lg bg-[#1080c2] text-white text-sm self-start"
-                    >
-                      Qatlam qo'shish
-                    </button>
-
-                    <AirLayerControls airLayer={airLayer} onChange={setAirLayer} />
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
@@ -1494,6 +1401,11 @@ export default function HeatWizard() {
                     type="button"
                     className="w-full px-4 py-2 rounded-xl border border-[#1080c2]/70 text-[#1080c2] font-semibold hover:bg-[#1080c2]/5 text-left text-xs md:text-sm"
                     onClick={() => {
+                      // Joriy stepni saqlash
+                      if (currentDisplayStep && currentDisplayStep.kind === "heat") {
+                        saveHeatStepState(currentDisplayStep.id);
+                      }
+
                       // Umumiy to'suvchi konstruksiya uchun yangi issiqlik hisobi (2.n) ni boshlash
                       const newIndex = heatSteps.length + 1;
                       const newId = `heat-${Date.now()}`;
@@ -1505,6 +1417,7 @@ export default function HeatWizard() {
                       ]);
                       setHeatCalcRunIndex(newIndex);
 
+                      // Yangi step uchun bo'sh holat
                       setConstructionType("");
                       setRibHeightRatio("");
                       setLayers([
@@ -1530,6 +1443,11 @@ export default function HeatWizard() {
                     type="button"
                     className="w-full px-4 py-2 rounded-xl border border-[#1080c2]/70 text-[#1080c2] font-semibold hover:bg-[#1080c2]/5 text-left text-xs md:text-sm"
                     onClick={() => {
+                      // Joriy stepni saqlash
+                      if (currentDisplayStep && currentDisplayStep.kind === "heat") {
+                        saveHeatStepState(currentDisplayStep.id);
+                      }
+
                       // Deraza/balkon eshiklari uchun yangi issiqlik hisobi (2.n)
                       const newIndex = heatSteps.length + 1;
                       const newId = `heat-${Date.now()}`;
@@ -1576,6 +1494,11 @@ export default function HeatWizard() {
                     type="button"
                     className="w-full px-4 py-2 rounded-xl border border-[#1080c2]/70 text-[#1080c2] font-semibold hover:bg-[#1080c2]/5 text-left text-xs md:text-sm"
                     onClick={() => {
+                      // Joriy stepni saqlash
+                      if (currentDisplayStep && currentDisplayStep.kind === "heat") {
+                        saveHeatStepState(currentDisplayStep.id);
+                      }
+
                       // Eshik/darvozalar uchun yangi issiqlik hisobi (2.n)
                       const newIndex = heatSteps.length + 1;
                       const newId = `heat-${Date.now()}`;

@@ -5,7 +5,10 @@ import { MATERIALS } from "./data/materials";
 import { CONSTRUCTION_TYPES } from "./data/constructionTypes";
 import { ProtectionLevelNoteText } from "./heatSharedTexts";
 import { CustomSelect, CustomRegionSelect } from "./controls/HeatSelects";
-import { ConstructionIndicatorsPanel } from "./controls/ConstructionBlocks";
+import { ConstructionIndicatorsPanel, AirLayerControls } from "./controls/ConstructionBlocks";
+import { MaterialLayersTable } from "./controls/MaterialLayersTable";
+import { MaterialTreeModal } from "./controls/MaterialTreeModal";
+import { ProtectionLevelInfoModal, RibHeightInfoModal } from "./controls/InfoModals";
 import { RO_TABLES } from "./data/roTables";
 
 export default function IssiqlikTexnikHisob() {
@@ -640,209 +643,7 @@ export default function IssiqlikTexnikHisob() {
     }));
   }, [useLambdaA]);
 
-  // Variant A: Custom rounded dropdown select – endi umumiy CustomSelect komponenti orqali boshqariladi
-
-
-  function MaterialTreeModal({ open, onClose, onApply }) {
-    const [selectedGroupIdx, setSelectedGroupIdx] = useState(0);
-    const [selectedClassIdx, setSelectedClassIdx] = useState(0);
-    const [selectedMaterialId, setSelectedMaterialId] = useState(null);
-    const [selectedVariantIdx, setSelectedVariantIdx] = useState(null);
-
-    const groups = MATERIALS || [];
-    const activeGroup =
-      selectedGroupIdx != null && selectedGroupIdx >= 0 && selectedGroupIdx < groups.length
-        ? groups[selectedGroupIdx] || {}
-        : {};
-    const classes = activeGroup.classes || [];
-    const activeClass =
-      selectedClassIdx != null && selectedClassIdx >= 0 && selectedClassIdx < classes.length
-        ? classes[selectedClassIdx] || {}
-        : {};
-    const materials = activeClass.materials || [];
-
-    const activeMaterial = useMemo(() => {
-      if (!selectedMaterialId) return null;
-      return materials.find((m) => (m.id || m.name || m.material_name) === selectedMaterialId) || null;
-    }, [materials, selectedMaterialId]);
-
-    const variants = activeMaterial?.variants || [];
-    const activeVariant = selectedVariantIdx != null ? variants[Number(selectedVariantIdx)] : null;
-
-    if (!open) return null;
-
-    return createPortal(
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-        <div className="bg-white rounded-2xl shadow-xl max-w-5xl w-full mx-4 h-[560px] max-h-[90vh] flex flex-col">
-          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Material tanlash</h2>
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500"
-              aria-label="Yopish"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
-          <div className="flex-1 overflow-auto">
-            <ul className="py-3 text-sm text-gray-800">
-              {groups.map((g, gi) => (
-                <li key={g.group_id || gi} className="mb-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (selectedGroupIdx === gi) {
-                        setSelectedGroupIdx(null);
-                        setSelectedClassIdx(null);
-                        setSelectedMaterialId(null);
-                        setSelectedVariantIdx(null);
-                      } else {
-                        setSelectedGroupIdx(gi);
-                        setSelectedClassIdx(0);
-                        setSelectedMaterialId(null);
-                        setSelectedVariantIdx(null);
-                      }
-                    }}
-                    className={`w-full text-left px-4 py-1.5 rounded-md ${
-                      gi === selectedGroupIdx ? "bg-[#1080c2]/10 text-[#1080c2] font-semibold" : "hover:bg-gray-50 text-gray-800"
-                    }`}
-                  >
-                    {g.group_name || "Guruh"}
-                  </button>
-
-                  {gi === selectedGroupIdx && (classes || []).length > 0 && (
-                    <ul className="mt-1 ml-4 border-l border-gray-200 pl-3">
-                      {(classes || []).map((cls, ci) => (
-                        <li key={cls.class_id || ci} className="mb-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (selectedClassIdx === ci) {
-                                setSelectedClassIdx(null);
-                                setSelectedMaterialId(null);
-                                setSelectedVariantIdx(null);
-                              } else {
-                                setSelectedClassIdx(ci);
-                                setSelectedMaterialId(null);
-                                setSelectedVariantIdx(null);
-                              }
-                            }}
-                            className={`w-full text-left px-3 py-1.5 rounded-md ${
-                              ci === selectedClassIdx ? "bg-[#1080c2]/5 text-[#1080c2]" : "hover:bg-gray-50 text-gray-800"
-                            }`}
-                          >
-                            {cls.class_name || "Sinf"}
-                          </button>
-
-                          {ci === selectedClassIdx && (materials || []).length > 0 && (
-                            <ul className="mt-1 ml-4 border-l border-dashed border-gray-200 pl-3">
-                              {(activeClass.materials || []).map((m, mi) => {
-                                const matId = m.id || m.name || m.material_name || String(mi);
-                                const matVariants = m.variants || [];
-
-                                if (!matVariants.length) {
-                                  const isSelected = selectedMaterialId === matId && selectedVariantIdx == null;
-                                  return (
-                                    <li key={matId} className="mb-0.5">
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setSelectedMaterialId(matId);
-                                          setSelectedVariantIdx(null);
-                                        }}
-                                        className={`w-full text-left px-3 py-1.5 rounded-md text-xs ${
-                                          isSelected ? "bg-[#1080c2]/10 text-[#1080c2]" : "hover:bg-gray-50 text-gray-800"
-                                        }`}
-                                      >
-                                        {m.name || m.material_name || "Material"}
-                                      </button>
-                                    </li>
-                                  );
-                                }
-
-                                return matVariants.map((v, vi) => {
-                                  const isSelected = selectedMaterialId === matId && String(selectedVariantIdx) === String(vi);
-                                  const labelBase = m.name || m.material_name || "Material";
-                                  const dens = v.density || v.zichlik;
-                                  const label = dens ? `${labelBase} (${dens} kg/m³)` : labelBase;
-                                  return (
-                                    <li key={`${matId}-${vi}`} className="mb-0.5">
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setSelectedMaterialId(matId);
-                                          setSelectedVariantIdx(String(vi));
-                                        }}
-                                        onDoubleClick={() => {
-                                          const variantIndex = String(vi);
-                                          const payload = {
-                                            material: m,
-                                            materialId: matId,
-                                            variantIdx: variantIndex,
-                                            variant: v,
-                                          };
-                                          onApply && onApply(payload);
-                                          onClose && onClose();
-                                        }}
-                                        className={`w-full text-left px-3 py-1.5 rounded-md text-xs ${
-                                          isSelected ? "bg-[#1080c2]/10 text-[#1080c2]" : "hover:bg-gray-50 text-gray-800"
-                                        }`}
-                                      >
-                                        {label}
-                                      </button>
-                                    </li>
-                                  );
-                                });
-                              })}
-                            </ul>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50"
-            >
-              Bekor qilish
-            </button>
-            <button
-              type="button"
-              disabled={!activeMaterial || (variants.length > 1 && selectedVariantIdx == null)}
-              onClick={() => {
-                if (!activeMaterial) return;
-                let variantIndex = selectedVariantIdx;
-                if (variants.length === 1 && variantIndex == null) variantIndex = 0;
-                const v = variants.length ? variants[Number(variantIndex)] : null;
-                onApply && onApply({
-                  material: activeMaterial,
-                  materialId: activeMaterial.id || activeMaterial.name || activeMaterial.material_name,
-                  variantIdx: variants.length ? String(variantIndex) : null,
-                  variant: v,
-                });
-                onClose && onClose();
-              }}
-              className="px-4 py-2 rounded-lg text-sm text-white bg-[#1080c2] disabled:bg-gray-300 disabled:cursor-not-allowed"
-            >
-              Tanlash
-            </button>
-          </div>
-        </div>
-      </div>,
-      document.body
-    );
-  }
+  // MaterialTreeModal endi alohida komponent sifatida import qilinadi, takrorlash oldini olish uchun
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 mt-6">
@@ -928,72 +729,17 @@ export default function IssiqlikTexnikHisob() {
                   placeholder="Tanlang"
                   options={[{ value: "I", label: "I" }, { value: "II", label: "II" }, { value: "III", label: "III" }]}
                 />
-                {showProtectionInfo &&
-                  createPortal(
-                    <div
-                      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
-                      onClick={(e) => {
-                        if (e.target.classList.contains('fixed')) {
-                          setShowProtectionInfo(false);
-                        }
-                      }}
-                    >
-                      <div
-                        className="bg-white rounded-2xl shadow-xl max-w-xl w-full mx-4 p-6 text-sm text-gray-800"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <div className="flex items-start justify-between gap-4 mb-3">
-                          <h2 className="text-base font-semibold text-gray-900">
-                            Issiqlik himoyasi darajalari bo'yicha eslatma
-                          </h2>
-                          <button
-                            type="button"
-                            className="text-gray-400 hover:text-gray-600"
-                            onClick={() => setShowProtectionInfo(false)}
-                            aria-label="Yopish"
-                          >
-                            ×
-                          </button>
-                        </div>
-                        <ProtectionLevelNoteText />
-                      </div>
-                    </div>,
-                    document.body
-                  )}
+                <ProtectionLevelInfoModal 
+                  open={showProtectionInfo} 
+                  onClose={() => setShowProtectionInfo(false)} 
+                />
               </div>
             </div>
 
-            {showRibInfo &&
-              createPortal(
-                <div
-                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
-                  onClick={() => setShowRibInfo(false)}
-                >
-                  <div
-                    className="bg-white rounded-2xl shadow-xl max-w-xl w-full mx-4 p-6 text-sm text-gray-800"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div className="flex items-start justify-between gap-4 mb-3">
-                      <h2 className="text-base font-semibold text-gray-900">
-                        Qovurg'a balandligi nisbati, h/a bo'yicha eslatma
-                      </h2>
-                      <button
-                        type="button"
-                        className="text-gray-400 hover:text-gray-600"
-                        onClick={() => setShowRibInfo(false)}
-                        aria-label="Yopish"
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <p className="text-sm text-gray-700">
-                      Orayopma tekis yoki turtib chiqgan qovurg'alari balandligi h-ning qo'shni qovurg'alar qirralari
-                      orasidagi masofa a-ga nisbati 0.3 gacha bo'lsa h/a ≤ 0.3 tanlang.
-                    </p>
-                  </div>
-                </div>,
-                document.body
-              )}
+            <RibHeightInfoModal 
+              open={showRibInfo} 
+              onClose={() => setShowRibInfo(false)} 
+            />
 
             {/* 3) t_i va φ_i bir qatorda */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1078,130 +824,16 @@ export default function IssiqlikTexnikHisob() {
           )}
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="text-gray-600">
-                <th className="py-2 pr-4 text-center">#</th>
-                <th className="py-2 pr-4 text-left">
-                  <div className="flex items-center gap-3">
-                    <div className="w-[32rem] leading-tight">
-                      <div>
-                        Material
-                        <span className="ml-2 italic font-normal">(Tashqaridan ichkariga)</span>
-                      </div>
-                    </div>
-                  </div>
-                </th>
-                <th className="py-2 pr-4 text-center leading-tight">
-                  <div>
-                    Qalinlik <span className="text-[#1080c2]">δ</span>, mm
-                  </div>
-                  <div></div>
-                </th>
-                <th className="py-2 pr-4 text-center leading-tight">
-                  <div>
-                    Zichlik <span className="text-[#1080c2]">γ</span>
-                    <sub className="align-baseline text-[0.7em] text-[#1080c2]">0</sub>, kg/m³
-                  </div>
-                  <div></div>
-                </th>
-                <th className="py-2 pr-4 text-center leading-tight">
-                  <div>
-                    Issiqlik o'tkazuvchanlik <span className="text-[#1080c2]">λ</span>
-                  </div>
-                  <div></div>
-                </th>
-                <th className="py-2 pr-4 text-center leading-tight">
-                  <div className="whitespace-nowrap">Termik</div>
-                  <div className="whitespace-nowrap">
-                    qarshilik <span className="text-[#1080c2]">R</span>
-                  </div>
-                </th>
-                <th className="py-2 pr-4 text-center leading-tight">
-                  <div>Amal</div>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {layers.map((L, idx) => {
-                const d_m = (Number(L.thickness_mm) || 0) / 1000;
-                const lam = Number(L.lambda) || 0;
-                const R = d_m > 0 && lam > 0 ? d_m / lam : 0;
-                return (
-                  <tr
-                    key={L.id}
-                    className="border-t border-[#E5E7EB]"
-                    draggable
-                    onDragStart={() => setDraggingLayerId(L.id)}
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      if (draggingLayerId && draggingLayerId !== L.id) {
-                        moveLayer(draggingLayerId, L.id);
-                      }
-                    }}
-                    onDragEnd={() => setDraggingLayerId(null)}
-                  >
-                    <td className="py-2 pr-4">{idx + 1}</td>
-                    <td className="py-2 pr-4 align-top">
-                      <div className="w-full max-w-none">
-                        <div className="flex items-center gap-3">
-                          <button
-                            type="button"
-                            onClick={() => setMaterialModal({ open: true, layerId: L.id })}
-                            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[#E5E7EB] bg-gray-50 text-sm text-gray-800 hover:bg-gray-100"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              className="w-4 h-4 text-[#1080c2]"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 7h14M5 12h14M5 17h14" />
-                            </svg>
-                            <span>{L.name || "Material tanlang"}</span>
-                          </button>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-2 pr-4 text-center">
-                      <input
-                        type="number"
-                        value={L.thickness_mm}
-                        onChange={(e) => updateLayer(L.id, "thickness_mm", e.target.value)}
-                        className="w-28 px-3 py-2 rounded-lg border border-[#E5E7EB] bg-gray-50 text-right"
-                      />
-                    </td>
-                    <td className="py-2 pr-4 text-center">
-                      <span className="inline-block min-w-[4.5rem] text-center">
-                        {L.rho != null && L.rho !== "" ? Number(L.rho) : ""}
-                      </span>
-                    </td>
-                    <td className="py-2 pr-4 text-center">
-                      <span className="inline-block min-w-[4.5rem] text-center">
-                        {L.lambda != null && L.lambda !== "" ? Number(L.lambda).toFixed(3) : ""}
-                      </span>
-                    </td>
-                    <td className="py-2 pr-4 text-center">
-                      <span className="inline-block min-w-[4.5rem] text-center">
-                        {R > 0 ? R.toFixed(3) : ""}
-                      </span>
-                    </td>
-                    <td className="py-2 pr-4 text-center">
-                      <button onClick={() => removeLayer(L.id)} aria-label="O'chirish" className="p-2 rounded-lg border text-red-600 border-red-300 hover:bg-red-50 inline-flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-1-2a1 1 0 00-1-1h-2a1 1 0 00-1 1v2" />
-                        </svg>
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        {/* Qatlamlar jadvali - umumiy MaterialLayersTable komponenti orqali, dizayni HeatWizard dagi bilan bir xil */}
+        <MaterialLayersTable
+          layers={layers}
+          updateLayer={updateLayer}
+          removeLayer={removeLayer}
+          setMaterialModal={setMaterialModal}
+          draggingLayerId={draggingLayerId}
+          setDraggingLayerId={setDraggingLayerId}
+          moveLayer={moveLayer}
+        />
 
         <div className="mt-4 flex flex-col gap-4">
           <button
@@ -1211,109 +843,8 @@ export default function IssiqlikTexnikHisob() {
             Qatlam qo'shish
           </button>
 
-          <div className="mt-2 border-t border-dashed border-gray-200 pt-4 space-y-3">
-            <label className="inline-flex items-center gap-2 text-sm font-medium text-gray-800">
-              <input
-                type="checkbox"
-                className="rounded border-gray-300 text-[#1080c2] focus:ring-[#1080c2]"
-                checked={airLayer.enabled}
-                onChange={(e) =>
-                  setAirLayer((s) => ({
-                    ...s,
-                    enabled: e.target.checked,
-                  }))
-                }
-              />
-              <span>Berk havo qatlamini qo'shish</span>
-            </label>
-
-            {airLayer.enabled && (
-              <div className="space-y-2 text-sm">
-                <div className="grid grid-cols-1 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.6fr)] gap-y-2 md:gap-y-0 md:gap-x-8 items-start">
-                  <div className="w-[200px]">
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
-                      Havo qatlamining qalinligi, mm
-                    </label>
-                    <CustomSelect
-                      value={airLayer.thickness_mm}
-                      onChange={(val) =>
-                        setAirLayer((s) => ({
-                          ...s,
-                          thickness_mm: val,
-                        }))
-                      }
-                      placeholder="Tanlang"
-                      options={[
-                        { value: "10", label: "10" },
-                        { value: "20", label: "20" },
-                        { value: "30", label: "30" },
-                        { value: "50", label: "50" },
-                        { value: "100", label: "100" },
-                        { value: "150", label: "150" },
-                        { value: "200_300", label: "200-300" },
-                      ]}
-                    />
-                  </div>
-
-                  <div>
-                    <span className="block text-xs font-semibold text-gray-700 mb-1">Qatlam harorati</span>
-                    <div className="flex items-center gap-4 text-xs text-gray-800 mb-2">
-                      <label className="inline-flex items-center gap-1">
-                        <input
-                          type="radio"
-                          name="air-layer-temp"
-                          value="positive"
-                          className="border-gray-300 text-[#1080c2] focus:ring-[#1080c2]"
-                          checked={airLayer.layerTemp === "positive"}
-                          onChange={() =>
-                            setAirLayer((s) => ({
-                              ...s,
-                              layerTemp: "positive",
-                            }))
-                          }
-                        />
-                        <span>Musbat</span>
-                      </label>
-                      <label className="inline-flex items-center gap-1">
-                        <input
-                          type="radio"
-                          name="air-layer-temp"
-                          value="negative"
-                          className="border-gray-300 text-[#1080c2] focus:ring-[#1080c2]"
-                          checked={airLayer.layerTemp === "negative"}
-                          onChange={() =>
-                            setAirLayer((s) => ({
-                              ...s,
-                              layerTemp: "negative",
-                            }))
-                          }
-                        />
-                        <span>Manfiy</span>
-                      </label>
-                    </div>
-
-                    <label className="inline-flex items-center gap-2 text-xs text-gray-800">
-                      <input
-                        type="checkbox"
-                        className="rounded border-gray-300 text-[#1080c2] focus:ring-[#1080c2]"
-                        checked={airLayer.foilBothSides}
-                        onChange={(e) =>
-                          setAirLayer((s) => ({
-                            ...s,
-                            foilBothSides: e.target.checked,
-                          }))
-                        }
-                      />
-                      <span>
-                        Havo qatlamining bir yoki ikkala yuzasi alyumin zar qog'oz (folga) bilan
-                        yelimlangan
-                      </span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          {/* Havo qatlami boshqaruvlari – dizayni HeatWizard dagi bilan bir xil qilish uchun umumiy AirLayerControls komponenti ishlatiladi */}
+          <AirLayerControls airLayer={airLayer} onChange={setAirLayer} />
         </div>
       </div>
 
@@ -1541,7 +1072,7 @@ export default function IssiqlikTexnikHisob() {
                     </p>
                     <p
                       className={
-                        "mt-1 text-2xl font-semibold text-center " +
+                        "mt-1 text-2xl font-bold text-center " +
                         (isCompliant ? "text-emerald-600" : "text-red-600")
                       }
                     >

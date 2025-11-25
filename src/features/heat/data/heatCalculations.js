@@ -49,6 +49,10 @@ export function mapConstructionTypeToId(ct) {
       return "8";
     case "isitilmaydigan_texnik_tagxona_pastda":
       return "9";
+    case "eshik_darvoza":
+    case "deraza_balkon_eshiklari":
+      // Eshik va derazalar uchun tashqi devor (id=1) qiymatlari ishlatiladi
+      return "1";
     default:
       return null;
   }
@@ -182,6 +186,29 @@ export function mapDHeatingToBand(D_is_dav) {
 
 export function getRoPrFromTables({ protectionLevel, objectType, floors, D_is_dav, constructionTypeId }) {
   if (!protectionLevel || !objectType || D_is_dav == null || !constructionTypeId) return null;
+
+  const level = protectionLevel;
+  const category = mapObjectTypeToRoCategory(objectType);
+  const Dband = mapDHeatingToBand(D_is_dav);
+
+  if (!level || !category || !Dband) return null;
+
+  const byLevel = RO_TABLES?.[level];
+  const byCategory = byLevel?.[category];
+  const byD = byCategory?.[Dband];
+  const value = byD?.[constructionTypeId];
+
+  if (typeof value === "number" && value > 0) return value;
+  return null;
+}
+
+// Deraza va fonarlar uchun RoTal.D.F. ni olish
+// derazaType: "deraza_balkon" -> id='10', "fonarlar" -> id='11'
+export function getRoTalForDerazaFonar({ protectionLevel, objectType, D_is_dav, derazaType }) {
+  if (!protectionLevel || !objectType || D_is_dav == null || !derazaType) return null;
+
+  // Deraza turi bo'yicha konstruksiya ID ni aniqlash
+  const constructionTypeId = derazaType === "fonarlar" ? "11" : "10";
 
   const level = protectionLevel;
   const category = mapObjectTypeToRoCategory(objectType);

@@ -1,6 +1,11 @@
 import React, { useState, useMemo, useEffect } from "react";
+
 // Yangi: logotip rasmi import qilinadi
 import logo from './assets/logo.png';
+// Yangi: 2-tab uchun issiqlik texnik hisob komponenti (ITH.jsx)
+import IssiqlikTexnikHisob from "./features/heat/ITH";
+// Yangi: 3-tab uchun issiqlik texnik hisob va energetik pasport uchun bosqichli ustoz-komponent (HeatWizard.jsx)
+import HeatWizard from "./features/heat/HeatWizard";
 
 /**
  * Loyiha qiymati kalkulyatori (App.jsx)
@@ -543,36 +548,29 @@ export default function App() {
               </div>
             </div>
           </div>
-          {/* Tab navigatsiya: faol tab birinchi, ikkinchisida 'Tez kunda' belgisi */}
+          {/* Tab navigatsiya: faol tab birinchi, ikkinchisida 'Tez kunda' belgisi, uchinchi tabda Energetik pasport */}
           <div className="mt-4 flex items-center">
             <div className="flex items-center space-x-8">
-              {/* Faol tab */}
+              {/* 1-tab: Loyiha qiymati kalkulyatori (asosiy kalkulyator sahifasi) */}
               <div
                 onClick={() => setActiveTab('calculator')}
                 className={`cursor-pointer pb-2 hover:text-[#025C5A] ${activeTab==='calculator' ? 'border-b-2 border-[#025C5A] text-[#025C5A] font-semibold' : 'text-gray-700'}`}
               >
                 Loyiha qiymati kalkulyatori
               </div>
-              {/* Ikkinchi tab: bosilganda 'Tez kunda' popup chiqadi */}
-              <div className="relative flex items-center">
-                <div
-                  onClick={() => {
-                    // Faqat popup ko'rsatish, aktiv tabni o'zgartirmaymiz
-                    setShowSoon(true);
-                    setTimeout(() => setShowSoon(false), 2000);
-                  }}
-                  className={`cursor-pointer pb-2 hover:text-[#025C5A] text-gray-700`}
-                >
-                  Issiqlik texnik hisob-kitobi
-                </div>
-                {showSoon && (
-                  <div className="absolute -top-10 left-0 z-10 bg-white border border-red-200 shadow-lg rounded-lg px-3 py-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-red-600">Tez kunda</span>
-                    </div>
-                    <div className="absolute left-4 -bottom-2 w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-red-200"></div>
-                  </div>
-                )}
+              {/* 2-tab: Issiqlik texnik hisob-kitobi (ITH.jsx komponenti) */}
+              <div
+                onClick={() => setActiveTab('ith')}
+                className={`cursor-pointer pb-2 hover:text-[#025C5A] ${activeTab==='ith' ? 'border-b-2 border-[#025C5A] text-[#025C5A] font-semibold' : 'text-gray-700'}`}
+              >
+                Issiqlik texnik hisob-kitobi
+              </div>
+              {/* 3-tab: Energetik pasport va issiqlik texnik hisoblar uchun HeatWizard interfeysi */}
+              <div
+                onClick={() => setActiveTab('heat')}
+                className={`cursor-pointer pb-2 hover:text-[#025C5A] ${activeTab==='heat' ? 'border-b-2 border-[#025C5A] text-[#025C5A] font-semibold' : 'text-gray-700'}`}
+              >
+                Energetik pasport
               </div>
             </div>
             {/* <span className="ml-auto text-xs md:text-sm text-gray-500">Foydalanilgan: {usageCount} marta</span> */}
@@ -580,7 +578,8 @@ export default function App() {
         </div>
       </header>
 
-      {/* Asosiy konteyner - bir ustunli tuzilma, katta ekranlarda ikki ustunga o'zgaradi */}
+      {/* 1-tab (activeTab === 'calculator') holatida loyiha qiymati kalkulyatori kontentini ko'rsatamiz */}
+      {activeTab === 'calculator' && (
       <div className="max-w-6xl mx-auto space-y-6 mt-6">
         
         {/* ============================================
@@ -867,6 +866,23 @@ export default function App() {
         </div>
 
       </div>
+      )}
+
+      {/* 2-tab (activeTab === 'ith') holatida issiqlik texnik hisob komponenti (ITH.jsx) ni ko'rsatamiz */}
+      {activeTab === 'ith' && (
+        <div className="mt-6">
+          {/* ITH.jsx o'zi ichida to'liq layout va hisoblash mantiqiga ega */}
+          <IssiqlikTexnikHisob />
+        </div>
+      )}
+
+      {/* 3-tab (activeTab === 'heat') holatida issiqlik texnik hisob va energetik pasport uchun HeatWizard ni ko'rsatamiz */}
+      {activeTab === 'heat' && (
+        <div className="max-w-6xl mx-auto mt-6">
+          {/* HeatWizard o'zi ichida bosqichli interfeysga ega, shu sababli bu yerda alohida layout kerak emas */}
+          <HeatWizard />
+        </div>
+      )}
     </div>
   );
 }
