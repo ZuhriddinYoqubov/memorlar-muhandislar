@@ -442,6 +442,9 @@ export function exportNormativeStepPdf({ initial }) {
 // Bitta issiqlik texnik hisob (2.n step) uchun alohida PDF - pdfmake bilan
 export function exportHeatStepPdf({ initial, climate, heatingSeason, heatStep, CONSTRUCTION_TYPES }) {
   const saved = heatStep?.savedState;
+  console.log("PDF Export - heatStep:", heatStep);
+  console.log("PDF Export - saved:", saved);
+  console.log("PDF Export - layers:", saved?.layers);
   const currentYear = new Date().getFullYear();
 
   const constructionType = saved
@@ -473,7 +476,7 @@ export function exportHeatStepPdf({ initial, climate, heatingSeason, heatStep, C
     ]
   });
 
-  // Dastlabki ma'lumotlar - subscript bilan
+  // Dastlabki ma'lumotlar - subscript bilan (step UI dagi kabi)
   const climateRows = [
     {
       label: [{ text: "Ichki havoning hisobiy harorati t" }, { text: "i", fontSize: 6, baseline: -3 }, { text: ", °C" }],
@@ -485,12 +488,12 @@ export function exportHeatStepPdf({ initial, climate, heatingSeason, heatStep, C
       note: getPhiNote(saved?.humidityRegimeInfo)
     },
     {
-      label: [{ text: "O'rtacha kunlik havo harorati 10 °C dan kam yoki unga teng bo'lgan davning o'rtacha harorati, t" }, { text: "is.dav", fontSize: 6, baseline: -3 }],
+      label: [{ text: "O'rtacha kunlik havo harorati 10 °C dan kam yoki unga teng bo'lgan davrning o'rtacha harorati, t" }, { text: "is.dav", fontSize: 6, baseline: -3 }],
       value: heatingSeason.t_is_dav != null ? `${heatingSeason.t_is_dav.toFixed(1)} °C` : "—",
       note: getTIsDavNote()
     },
     {
-      label: [{ text: "O'rtacha kunlik havo harorati 10 °C dan kam yoki unga teng bo'lgan davning davomiyligi, Z" }, { text: "is.dav", fontSize: 6, baseline: -3 }],
+      label: [{ text: "O'rtacha kunlik havo harorati 10 °C dan kam yoki unga teng bo'lgan davrning davomiyligi, Z" }, { text: "is.dav", fontSize: 6, baseline: -3 }],
       value: heatingSeason.Z_is_dav != null ? `${heatingSeason.Z_is_dav.toFixed(0)} sutka` : "—",
       note: getZIsDavNote()
     },
@@ -567,7 +570,7 @@ export function exportHeatStepPdf({ initial, climate, heatingSeason, heatStep, C
     }
     if (type === "RoTalSG") {
       return [
-        { text: "R" }, { text: "o", fontSize: 5, baseline: -2 }, { text: "" }, { text: "Tal.SG", fontSize: 4, baseline: 3 },
+        { text: "R" }, { text: "o", fontSize: 5, baseline: -8 }, { text: "" }, { text: "Tal.SG", fontSize: 4, baseline: 8 },
         { text: ` = n(t` }, { text: "i", fontSize: 5, baseline: -2 }, 
         { text: ` - t` }, { text: "t", fontSize: 5, baseline: -2 }, 
         { text: `) / (Δt` }, { text: "t", fontSize: 5, baseline: -2 },
@@ -597,7 +600,7 @@ export function exportHeatStepPdf({ initial, climate, heatingSeason, heatStep, C
     return null;
   };
 
-  // Normativ parametrlar - subscript va izohlar bilan (import qilingan funksiyalar orqali)
+  // Normativ parametrlar - subscript va izohlar bilan (step UI dagi kabi)
   const normParams = [
     {
       label: [{ text: "Ichki havo harorati va to'suvchi konstruksiyaning ichki yuzasi harorati o'rtasidagi me'yoriy harorat farqi, Δt" }, { text: "t", fontSize: 6, baseline: -3 }],
@@ -620,13 +623,13 @@ export function exportHeatStepPdf({ initial, climate, heatingSeason, heatStep, C
       note: formatFormulaNote(getDIsDavNote({ t_in: saved?.t_in, t_is_dav: saved?.t_is_dav, Z_is_dav: saved?.Z_is_dav, D_d_dav: saved?.D_d_dav }), "D_is_dav")
     },
     {
-      label: [{ text: "Sanitariya-gigiena talablariga muvofiq me'yoriy (ruxsat etilgan maksimal) qarshilik, R" }, { text: "o", fontSize: 6, baseline: -3 }, { text: "" }, { text: "Tal.SG", fontSize: 5, baseline: 4 }],
-      value: saved?.Ro_MG != null ? [{ text: "R" }, { text: "o", fontSize: 6, baseline: -3 }, { text: "" }, { text: "Tal.SG", fontSize: 5, baseline: 4 }, { text: ` = ${saved.Ro_MG.toFixed(2)} m²·°C/Vt` }] : "—",
+      label: [{ text: "Sanitariya-gigiena talablariga muvofiq me'yoriy (ruxsat etilgan maksimal) qarshilik, R" }, { text: "o", fontSize: 6, baseline: -3 }, { text: "" }, { text: "Tal.SG", fontSize: 5, baseline: 5 }],
+      value: saved?.Ro_MG != null ? [{ text: "R" }, { text: "o", fontSize: 6, baseline: -3 }, { text: "" }, { text: "Tal.SG", fontSize: 5, baseline: 5 }, { text: ` = ${saved.Ro_MG.toFixed(2)} m²·°C/Vt` }] : "—",
       note: formatFormulaNote(getRoTalSGNote({ t_in: saved?.t_in, t_out: saved?.t_out, delta_t_n: saved?.delta_t_n, alpha_i: saved?.alpha_i, Ro_MG: saved?.Ro_MG }), "RoTalSG")
     },
     {
-      label: [{ text: "To'suvchi konstruksiyaning talab etilgan issiqlik uzatilishga keltirilgan qarshiligi, R" }, { text: "o", fontSize: 6, baseline: -3 }, { text: "" }, { text: "Tal.", fontSize: 5, baseline: 4 }],
-      value: saved?.RoTalab != null ? [{ text: "R" }, { text: "o", fontSize: 6, baseline: -3 }, { text: "" }, { text: "Tal.", fontSize: 5, baseline: 4 }, { text: ` = ${saved.RoTalab.toFixed(2)} m²·°C/Vt` }] : "—",
+      label: [{ text: "To'suvchi konstruksiyaning talab etilgan issiqlik uzatilishiga keltirilgan qarshiligi, R" }, { text: "o", fontSize: 6, baseline: -3 }, { text: "" }, { text: "Tal.", fontSize: 5, baseline: 5 }],
+      value: saved?.RoTalab != null ? [{ text: "R" }, { text: "o", fontSize: 6, baseline: -3 }, { text: "" }, { text: "Tal.", fontSize: 5, baseline: 5 }, { text: ` = ${saved.RoTalab.toFixed(2)} m²·°C/Vt` }] : "—",
       note: getRoTalNote(saved?.RoResult_row, saved?.protectionLevel)
     },
     {
@@ -635,7 +638,7 @@ export function exportHeatStepPdf({ initial, climate, heatingSeason, heatStep, C
       note: formatFormulaNote(getRkNote(saved?.layers, saved?.R_k), "Rk")
     },
     {
-      label: [{ text: "To'suvchi konstruksiyalarning issiqlik uzatilishga keltirilgan qarshiligi, R" }, { text: "o", fontSize: 6, baseline: -3 }],
+      label: [{ text: "To'suvchi konstruksiyalarning issiqlik uzatilishiga keltirilgan qarshiligi, R" }, { text: "o", fontSize: 6, baseline: -3 }],
       value: saved?.Ro_calc != null ? [{ text: "R" }, { text: "o", fontSize: 6, baseline: -3 }, { text: ` = ${saved.Ro_calc.toFixed(2)} m²·°C/Vt` }] : "—",
       note: formatFormulaNote(getRoNote({ alpha_i: saved?.alpha_i, alpha_t: saved?.alpha_t, R_k: saved?.R_k, Ro_calc: saved?.Ro_calc }), "Ro")
     },
@@ -667,28 +670,64 @@ export function exportHeatStepPdf({ initial, climate, heatingSeason, heatStep, C
   });
 
   // Xulosa - subscript bilan
-  const isSatisfied = saved?.Ro_calc != null && saved?.RoTalab != null && saved.Ro_calc >= saved.RoTalab;
-  const conclusionText = saved?.Ro_calc != null && saved?.RoTalab != null
+  // Ro ham RoTalSG dan, ham RoTalab dan katta yoki teng bo'lishi kerak
+  const RoCalc = saved?.Ro_calc;
+  const RoTalSGVal = saved?.Ro_MG; // RoTalSG savedState da Ro_MG sifatida saqlangan
+  const RoTalabVal = saved?.RoTalab;
+  
+  const isSatisfied = RoCalc != null && RoTalabVal != null && RoTalSGVal != null 
+    ? (RoCalc >= RoTalSGVal && RoCalc >= RoTalabVal)
+    : (RoCalc != null && RoTalabVal != null && RoCalc >= RoTalabVal);
+  
+  // Xulosa matni - uch qatorga ajratilgan (hammasi bold)
+  // 1-qator: Ro qiymati
+  const conclusionLine1 = RoCalc != null && RoTalabVal != null
     ? {
         text: [
-          { text: "To'suvchi konstruksiyalarning issiqlik uzatilishga keltirilgan qarshiligi ( R" },
+          { text: "To'suvchi konstruksiyalarning issiqlik uzatilishiga keltirilgan qarshiligi ( R" },
           { text: "o", fontSize: 7, baseline: -2 },
-          { text: ` = ${saved.Ro_calc.toFixed(2)} m²·°C/Vt) talab etilganidan ( R` },
-          { text: "o", fontSize: 7, baseline: -2 },
-          { text: "" },
-          { text: "Tal.", fontSize: 6, baseline: 3 },
-          { text: ` = ${saved.RoTalab.toFixed(2)} m²·°C/Vt) ${isSatisfied ? 'katta' : 'kichik'}.` }
-        ]
+          { text: ` = ${RoCalc.toFixed(2)} m²·°C/Vt)` }
+        ],
+        fontSize: 12,
+        bold: true,
+        margin: [0, 0, 0, 2]
       }
-    : { text: "" };
+    : null;
+  
+  // 2-qator: RoTal qiymati va katta/kichik
+  const conclusionLine2 = RoCalc != null && RoTalabVal != null
+    ? {
+        text: [
+          { text: "talab etilganidan ( R" },
+          { text: "o", fontSize: 8, baseline: -3 },
+          { text: "" },
+          { text: "Tal.", fontSize: 7, baseline: 5 },
+          { text: ` = ${RoTalabVal.toFixed(2)} m²·°C/Vt) ${isSatisfied ? 'katta.' : 'kichik.'}` }
+        ],
+        fontSize: 12,
+        bold: true,
+        margin: [0, 0, 0, 5]
+      }
+    : null;
+  
+  // 3-qator: yakuniy natija
+  const conclusionLine3 = RoCalc != null && RoTalabVal != null
+    ? {
+        text: isSatisfied ? 'Issiqlik himoyasi talabiga muvofiq keladi!' : 'Issiqlik himoyasi talabiga muvofiq kelmaydi!',
+        fontSize: 16,
+        bold: true,
+        color: isSatisfied ? greenColor : redColor,
+        margin: [0, 0, 0, 0]
+      }
+    : null;
 
   // PDF hujjat tuzilishi
   const docDefinition = {
     pageSize: "A4",
     pageMargins: [20, 20, 20, 20],
     background: function(currentPage) {
-      if (currentPage === 2) {
-        // 2-sahifada A4 ga mos ko'k ramka (radiusli)
+      // 1-sahifadan tashqari barcha sahifalarda ko'k ramka
+      if (currentPage >= 2) {
         return {
           canvas: [
             {
@@ -792,16 +831,18 @@ export function exportHeatStepPdf({ initial, climate, heatingSeason, heatStep, C
       { text: "Normativ parametrlar", bold: true, fontSize: 10, margin: [10, 10, 10, 5] },
       { stack: normContent, margin: [10, 0, 10, 0] },
 
-      // Xulosa
-      { text: "", margin: [0, 15, 0, 0] },
-      { ...conclusionText, alignment: "center", fontSize: 10, bold: true, margin: [10, 0, 10, 8] },
-      { 
-        text: isSatisfied ? "Shartlarga muvofiq keladi!" : "Shartlarga muvofiq kelmaydi!", 
-        alignment: "center", 
-        fontSize: 14, 
-        bold: true, 
-        color: isSatisfied ? greenColor : redColor,
-        margin: [0, 0, 0, 0]
+      // Xulosa - barcha 3 qator birgalikda (ajralmasin)
+      {
+        stack: [
+          { text: "", margin: [0, 25, 0, 0] },
+          // 1-qator: asosiy matn
+          conclusionLine1 ? { ...conclusionLine1, alignment: "center", margin: [10, 0, 10, 3] } : {},
+          // 2-qator: katta/kichik
+          conclusionLine2 ? { ...conclusionLine2, alignment: "center", margin: [10, 0, 10, 5] } : {},
+          // 3-qator: yakuniy natija
+          conclusionLine3 ? { ...conclusionLine3, alignment: "center", margin: [10, 0, 10, 0] } : {}
+        ],
+        unbreakable: true
       }
     ],
     styles: {

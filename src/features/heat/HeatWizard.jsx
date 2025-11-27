@@ -1212,10 +1212,16 @@ export default function HeatWizard() {
     // 2-bosqich (issiqlik texnik hisoblar)
     const isHeatCalcStep = currentStepId === "heat_calc_1" || currentDisplayStep?.kind === "heat";
     if (isHeatCalcStep) {
-      // Hozirgi heat step meta
+      // Avval hozirgi state ni saqlash
+      if (currentDisplayStep?.kind === "heat") {
+        saveHeatStepState(currentDisplayStep.id);
+      }
+
+      // Hozirgi heat step meta - heatSteps massividan id bo'yicha qidirish
       let heatStepMeta = null;
       if (currentDisplayStep?.kind === "heat") {
-        heatStepMeta = currentDisplayStep;
+        // heatSteps massividan to'liq savedState bilan olish
+        heatStepMeta = heatSteps.find(hs => hs.id === currentDisplayStep.id) || currentDisplayStep;
       } else if (heatSteps.length === 1) {
         // Bitta issiqlik bosqichi bo'lsa, shu yagona stepni olamiz
         heatStepMeta = heatSteps[0];
@@ -1226,6 +1232,36 @@ export default function HeatWizard() {
           "Avval to'suvchi konstruksiya bo'yicha kamida bitta issiqlik texnik hisobi bosqichini tanlang yoki saqlang.",
         );
         return;
+      }
+
+      // Agar savedState yo'q bo'lsa, hozirgi layers bilan to'ldirish
+      if (!heatStepMeta.savedState || !heatStepMeta.savedState.layers) {
+        heatStepMeta = {
+          ...heatStepMeta,
+          savedState: {
+            ...heatStepMeta.savedState,
+            constructionType,
+            ribHeightRatio,
+            layers: layers.map(l => {
+              const d_m = (Number(l.thickness_mm) || 0) / 1000;
+              const lam = Number(l.lambda) || 0;
+              const R = d_m > 0 && lam > 0 ? (d_m / lam).toFixed(2) : null;
+              return { ...l, R };
+            }),
+            Ro_calc,
+            RoTalab,
+            R_k: Rk,
+            Ro_MG: RoTalSG,
+            t_in: climate?.t_in,
+            t_out: climate?.t_out,
+            t_is_dav: heatingSeason?.t_is_dav,
+            Z_is_dav: heatingSeason?.Z_is_dav,
+            D_d_dav: heatingSeason?.D_d_dav,
+            delta_t_n: deltaTtResult?.delta_tt,
+            alpha_i: alphaI,
+            alpha_t: alphaT,
+          }
+        };
       }
 
       exportHeatStepPdf({

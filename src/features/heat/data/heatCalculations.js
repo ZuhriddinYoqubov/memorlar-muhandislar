@@ -342,7 +342,7 @@ export function getRoTalForDerazaFonar({ protectionLevel, objectType, D_is_dav, 
 export function getPhiNote(humidityRegimeInfo) {
   const info = humidityRegimeInfo;
   if (info && info.regime && info.tempRangeLabel && info.humidityBounds) {
-    return `QMQ 2.01.04-18 "Qurilish issiqlik texnikasi", 1-jadval bo'yicha xona ichidagi havo harorati ${info.tempRangeLabel} va namligi ${info.humidityBounds} bo'lganda namlik rejimi "${info.regime}" hisoblanadi.`;
+    return `QMQ 2.01.04-18, 1-jadval bo'yicha xona ichidagi havo harorati ${info.tempRangeLabel} va namligi ${info.humidityBounds} bo'lganda namlik rejimi "${info.regime}" hisoblanadi.`;
   }
   return `QMQ 2.01.04-18 "Qurilish issiqlik texnikasi", 1-jadval bo'yicha namlik rejimi aniqlanadi.`;
 }

@@ -399,6 +399,11 @@ export function ConstructionIndicatorsPanel({
             {getRoTalNote(RoResult.row, initial?.protectionLevel)}
           </p>
         )}
+        {RoTalab != null && (
+          <p className="text-xs text-gray-500 italic mt-1">
+            To'suvchi konstruksiyaning issiqlik uzatilishiga keltirilgan qarshiligi R<sub className="text-[0.7em]">o</sub> R<sub className="text-[0.7em]">o</sub><sup className="text-[0.7em]">Tal.SG</sup> qiymatdan va R<sub className="text-[0.7em]">o</sub><sup className="text-[0.7em]">Tal.</sup> qiymatdan kam bo'lmasligi kerak.
+          </p>
+        )}
       </div>
 
       {/* Rₖ */}
@@ -507,7 +512,7 @@ export function ConstructionResultSummary({ Ro_calc, RoTalab }) {
           (isCompliant ? "text-emerald-600" : "text-red-600")
         }
       >
-        Shartlarga muvofiq {isCompliant ? "keladi" : "kelmaydi"}!
+        Issiqlik himoyasi talabiga muvofiq {isCompliant ? "keladi" : "kelmaydi"}!
       </p>
     </div>
   );

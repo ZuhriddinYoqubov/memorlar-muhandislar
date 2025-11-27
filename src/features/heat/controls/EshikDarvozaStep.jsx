@@ -180,7 +180,7 @@ export function EshikDarvozaStep({
                     (isCompliant ? "text-emerald-600" : "text-red-600")
                   }
                 >
-                  Shartlarga muvofiq {isCompliant ? "keladi" : "kelmaydi"}!
+                  Issiqlik himoyasi talabiga muvofiq {isCompliant ? "keladi" : "kelmaydi"}!
                 </p>
               </>
             );
