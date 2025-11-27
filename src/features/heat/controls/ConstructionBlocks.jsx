@@ -5,6 +5,16 @@
 
 import React from "react";
 import { CustomSelect } from "./HeatSelects";
+import {
+  getDeltaTtNote,
+  getAlphaINote,
+  getAlphaTNote,
+  getDIsDavNote,
+  getRoTalSGNote,
+  getRoTalNote,
+  getRkNote,
+  getRoNote,
+} from "../data/heatCalculations";
 
 // To'suvchi konstruksiya materiallarining xususiyatlari – jadval skeleti
 export function ConstructionMaterialsCardSkeleton() {
@@ -82,7 +92,7 @@ export function ConstructionMaterialsCardSkeleton() {
 }
 
 // Berk havo qatlami (air layer) uchun qayta ishlatiladigan boshqaruv bloki
-export function AirLayerControls({ airLayer, onChange }) {
+export function AirLayerControls({ airLayer, onChange, showTopBorder = true }) {
   const handleToggleEnabled = (checked) => {
     onChange((s) => ({
       ...s,
@@ -105,7 +115,11 @@ export function AirLayerControls({ airLayer, onChange }) {
   };
 
   return (
-    <div className="mt-2 border-t border-dashed border-gray-200 pt-4 space-y-3">
+    <div
+      className={`mt-2 space-y-3 ${
+        showTopBorder ? "border-t border-dashed border-gray-200 pt-4" : "pt-2"
+      }`}
+    >
       <label className="inline-flex items-center gap-2 text-sm font-medium text-gray-800">
         <input
           type="checkbox"
@@ -196,235 +210,305 @@ export function ConstructionIndicatorsPanel({
   Ro_calc,
   initial,
   constructionType,
+  climate,
+  layers,
+  ribHeightRatio,
 }) {
+  // Izoh helper - row qiymatlarini olish
+  const alphaIRow = constructionType === "tashqi_devor" || constructionType === "tashqi_devor_ventfasad" || constructionType === "eshik_darvoza" 
+    ? 1 
+    : (ribHeightRatio === "low" ? 1 : (ribHeightRatio === "high" ? 2 : null));
+
   return (
     <div className="text-sm text-gray-800 divide-y divide-gray-200">
-      <div className="flex items-center justify-between py-3 min-h-[56px]">
-        <p className="text-justify">
-          <span className="font-semibold">
-            Ichki havo harorati va to'suvchi konstruksiyaning ichki yuzasi harorati o'rtasidagi me'yoriy harorat farqi, Δt
-            <sub className="align-baseline text-[0.7em]">t</sub>
-          </span>
-        </p>
-        {deltaTtResult && deltaTtResult.delta_tt != null ? (
-          <span className="font-semibold text-[#1080c2]">
-            Δt
-            <sub className="align-baseline text-[0.7em]">t</sub> = {deltaTtResult.delta_tt.toFixed(2)} °C
-          </span>
-        ) : (
-          <span className="text-xs text-red-600 text-right">
-            {(!initial?.objectType && !constructionType) && "Δtₜ ni hisoblash uchun obekt turi va konstruksiya turini tanlang."}
-            {(!initial?.objectType && constructionType) && "Δtₜ ni hisoblash uchun obekt turini tanlang."}
-            {(initial?.objectType && !constructionType) && "Δtₜ ni hisoblash uchun konstruksiya turini tanlang."}
-          </span>
-        )}
-      </div>
-
-      <div className="flex items-center justify-between py-3 min-h-[56px]">
-        <p className="text-justify">
-          <span className="font-semibold">
-            To'suvchi konstruksiyalarning ichki yuzasining issiqlik berish koeffitsienti α
-            <sub className="align-baseline text-[0.7em]">i</sub>
-          </span>
-        </p>
-        {alphaI != null ? (
-          <span className="font-semibold text-[#1080c2]">
-            α
-            <sub className="align-baseline text-[0.7em]">i</sub> = {alphaI.toFixed(1)} Vt/(m²·°C)
-          </span>
-        ) : (
-          <span className="text-xs text-red-600 text-right">
-            {constructionType
-              ? "Qovurg'a balandligi nisbati h/a ni tanlang."
-              : "Konstruksiya turini tanlang."}
-          </span>
-        )}
-      </div>
-
-      <div className="flex items-center justify-between py-3">
-        <p className="text-justify">
-          <span className="font-semibold">
-            To'suvchi konstruksiyalarning tashqi yuzasining issiqlik berish koeffitsienti α
-            <sub className="align-baseline text-[0.7em]">t</sub>
-          </span>
-        </p>
-        {alphaT != null ? (
-          <span className="font-semibold text-[#1080c2]">
-            α
-            <sub className="align-baseline text-[0.7em]">t</sub> = {alphaT.toFixed(0)} Vt/(m²·°C)
-          </span>
-        ) : (
-          <span className="text-xs text-red-600 text-right">
-            Konstruksiya turini tanlang.
-          </span>
-        )}
-      </div>
-
-      <div className="flex items-center justify-between py-3 min-h-[56px]">
-        <p className="text-justify">
-          <span className="font-semibold">
-            Isitish davrining gradus-sutkasi, D
-            <sub className="align-baseline text-[0.7em]">is.dav</sub>
-          </span>
-        </p>
-        {heatingSeason?.D_is_dav != null ? (
-          <span className="font-semibold text-[#1080c2]">
-            D
-            <sub className="align-baseline text-[0.7em]">is.dav</sub> = {heatingSeason.D_is_dav.toFixed(0)} °C·sutka
-          </span>
-        ) : (
-          <span className="text-xs text-red-600 text-right">
-            Isitish davrining gradus-sutkasini aniqlash uchun hududni tanlang.
-          </span>
-        )}
-      </div>
-
-      <div className="flex items-center justify-between py-3 min-h-[56px]">
-        <p className="text-justify">
-          <span className="font-semibold">
-            Sanitariya-gigiena talablariga muvofiq me'yriy (ruxsat etilgan maksimal) qarshilik, R
-            <sub className="align-baseline text-[0.7em]">o</sub>
-            <sup className="align-baseline text-[0.7em]">Tal.SG</sup>
-          </span>
-        </p>
-        {RoTalSG != null ? (
-          <span className="font-semibold text-[#1080c2]">
-            R
-            <sub className="align-baseline text-[0.7em]">o</sub>
-            <sup className="align-baseline text-[0.7em]">Tal.SG</sup> = {RoTalSG.toFixed(2)} m²·°C/Vt
-          </span>
-        ) : (
-          <span className="text-xs text-red-600 text-right">
-            R
-            <sub className="align-baseline text-[0.7em]">o</sub>
-            <sup className="align-baseline text-[0.7em]">Tal.SG</sup> ni hisoblash uchun n, t
-            <sub className="align-baseline text-[0.7em]">i</sub>, t
-            <sub className="align-baseline text-[0.7em]">t</sub>, Δt
-            <sub className="align-baseline text-[0.7em]">t</sub> va α
-            <sub className="align-baseline text-[0.7em]">i</sub> qiymatlari aniqlangan bo'lishi kerak.
-          </span>
-        )}
-      </div>
-
-      <div className="flex items-center justify-between py-3 min-h-[56px]">
-        <p className="text-justify">
-          <span className="font-semibold">
-            To'suvchi konstruksiyaning talab etilgan issiqlik uzatilishiga keltirilgan qarshiligi, R
-            <sub className="align-baseline text-[0.7em]">o</sub>
-            <sup className="align-baseline text-[0.7em]">Tal.</sup>
-            {initial?.protectionLevel && (
-              <span>{" "}(issiqlik himoyasining {initial.protectionLevel} darajasi)</span>
-            )}
-          </span>
-        </p>
-        {RoTalab != null ? (
-          <span className="font-semibold text-[#1080c2]">
-            R
-            <sub className="align-baseline text-[0.7em]">o</sub>
-            <sup className="align-baseline text-[0.7em]">Tal.</sup>
-            {" "}= {RoTalab.toFixed(2)} m²·°C/Vt
-          </span>
-        ) : (
-          <span className="text-xs text-red-600 text-right">
-            {/* ITH dagi batafsil matnni soddalashtirib, umumiy xabar qoldiramiz */}
-            RₒTal. ni hisoblash uchun kerakli parametrlarni tanlang.
-          </span>
-        )}
-      </div>
-
-      <div className="flex items-center justify-between py-3 min-h-[56px]">
-        <p className="text-justify">
-          <span className="font-semibold">
-            Ko'p qatlamli to'suvchi konstruksiyaning termik qarshiligi, R
-            <sub className="align-baseline text-[0.7em]">k</sub>
-          </span>
-        </p>
-        {Rk != null && Rk > 0 ? (
-          <span className="font-semibold text-[#1080c2]">
-            R
-            <sub className="align-baseline text-[0.7em]">k</sub> = {Rk.toFixed(2)} m²·°C/Vt
-          </span>
-        ) : (
-          <span className="text-xs text-red-600 text-right">
-            To'suvchi konstruksiya qatlamini kiriting.
-          </span>
-        )}
-      </div>
-
-      <div className="flex items-center justify-between py-3 min-h-[56px]">
-        <p className="text-justify">
-          <span className="font-semibold">
-            To'suvchi konstruksiyalarning issiqlik uzatilishiga keltirilgan qarshiligi, R
-            <sub className="align-baseline text-[0.7em]">o</sub>
-          </span>
-        </p>
-        {Ro_calc != null ? (
-          <span className="font-semibold text-[#1080c2]">
-            R
-            <sub className="align-baseline text-[0.7em]">o</sub> = {Ro_calc.toFixed(2)} m²·°C/Vt
-          </span>
-        ) : (
-          <span className="text-xs text-red-600 text-right">
-            R
-            <sub className="align-baseline text-[0.7em]">o</sub> ni hisoblash uchun α
-            <sub className="align-baseline text-[0.7em]">i</sub>, R
-            <sub className="align-baseline text-[0.7em]">k</sub> va α
-            <sub className="align-baseline text-[0.7em]">t</sub> qiymatlari aniqlangan bo'lishi kerak.
-          </span>
-        )}
-      </div>
-
-      {Ro_calc != null && RoTalab != null && (
-        <div className="mt-4 pt-4">
-          {(() => {
-            const RoVal = Ro_calc;
-            const RoTalVal = RoTalab;
-            const RoStr = RoVal.toFixed(2);
-            const RoTalStr = RoTalVal.toFixed(2);
-
-            const RoRounded = Number(RoStr);
-            const RoTalRounded = Number(RoTalStr);
-            const isCompliant = RoRounded >= RoTalRounded;
-
-            const relationText = RoRounded > RoTalRounded
-              ? "talab etilganidan"
-              : RoRounded === RoTalRounded
-                ? "talab etilganiga"
-                : "talab etilganidan";
-
-            const relationWord = RoRounded > RoTalRounded
-              ? "katta"
-              : RoRounded === RoTalRounded
-                ? "teng"
-                : "kichik";
-
-            return (
-              <>
-                <p className="text-lg font-semibold text-gray-900 text-center">
-                  To'suvchi konstruksiyalarning issiqlik uzatilishiga keltirilgan qarshiligi (
-                  R
-                  <sub className="align-baseline text-[0.7em]">o</sub>
-                  {" = "}
-                  <span className="text-[#1080c2]">{RoStr}</span> m²·°C/Vt) {relationText} (
-                  R
-                  <sub className="align-baseline text-[0.7em]">o</sub>
-                  <sup className="align-baseline text-[0.7em]">Tal.</sup>
-                  {" = "}
-                  <span className="text-[#1080c2]">{RoTalStr}</span> m²·°C/Vt) {relationWord}.
-                </p>
-                <p
-                  className={
-                    "mt-1 text-2xl font-bold text-center " +
-                    (isCompliant ? "text-emerald-600" : "text-red-600")
-                  }
-                >
-                  Shartlarga muvofiq {isCompliant ? "keladi" : "kelmaydi"}!
-                </p>
-              </>
-            );
-          })()}
+      {/* Δtₜ */}
+      <div className="py-3 min-h-[56px]">
+        <div className="flex items-center justify-between">
+          <p className="text-justify">
+            <span className="font-semibold">
+              Ichki havo harorati va to'suvchi konstruksiyaning ichki yuzasi harorati o'rtasidagi me'yoriy harorat farqi, Δt
+              <sub className="align-baseline text-[0.7em]">t</sub>
+            </span>
+          </p>
+          {deltaTtResult && deltaTtResult.delta_tt != null ? (
+            <span className="font-semibold text-[#1080c2]">
+              Δt
+              <sub className="align-baseline text-[0.7em]">t</sub> = {deltaTtResult.delta_tt.toFixed(2)} °C
+            </span>
+          ) : (
+            <span className="text-xs text-red-600 text-right">
+              {(!initial?.objectType && !constructionType) && "Δtₜ ni hisoblash uchun obekt turi va konstruksiya turini tanlang."}
+              {(!initial?.objectType && constructionType) && "Δtₜ ni hisoblash uchun obekt turini tanlang."}
+              {(initial?.objectType && !constructionType) && "Δtₜ ni hisoblash uchun konstruksiya turini tanlang."}
+            </span>
+          )}
         </div>
-      )}
+        {deltaTtResult?.row != null && (
+          <p className="text-xs text-gray-500 italic mt-1">
+            {getDeltaTtNote(deltaTtResult.row)}
+          </p>
+        )}
+      </div>
+
+      {/* αᵢ */}
+      <div className="py-3 min-h-[56px]">
+        <div className="flex items-center justify-between">
+          <p className="text-justify">
+            <span className="font-semibold">
+              To'suvchi konstruksiyalarning ichki yuzasining issiqlik berish koeffitsienti α
+              <sub className="align-baseline text-[0.7em]">i</sub>
+            </span>
+          </p>
+          {alphaI != null ? (
+            <span className="font-semibold text-[#1080c2]">
+              α
+              <sub className="align-baseline text-[0.7em]">i</sub> = {alphaI.toFixed(1)} Vt/(m²·°C)
+            </span>
+          ) : (
+            <span className="text-xs text-red-600 text-right">
+              {constructionType
+                ? "Qovurg'a balandligi nisbati h/a ni tanlang."
+                : "Konstruksiya turini tanlang."}
+            </span>
+          )}
+        </div>
+        {alphaI != null && alphaIRow != null && (
+          <p className="text-xs text-gray-500 italic mt-1">
+            {getAlphaINote(alphaIRow)}
+          </p>
+        )}
+      </div>
+
+      {/* αₜ */}
+      <div className="py-3 min-h-[56px]">
+        <div className="flex items-center justify-between">
+          <p className="text-justify">
+            <span className="font-semibold">
+              To'suvchi konstruksiyalarning tashqi yuzasining issiqlik berish koeffitsienti α
+              <sub className="align-baseline text-[0.7em]">t</sub>
+            </span>
+          </p>
+          {alphaT != null ? (
+            <span className="font-semibold text-[#1080c2]">
+              α
+              <sub className="align-baseline text-[0.7em]">t</sub> = {alphaT.toFixed(0)} Vt/(m²·°C)
+            </span>
+          ) : (
+            <span className="text-xs text-red-600 text-right">
+              Konstruksiya turini tanlang.
+            </span>
+          )}
+        </div>
+        {alphaT != null && (
+          <p className="text-xs text-gray-500 italic mt-1">
+            {getAlphaTNote(1)}
+          </p>
+        )}
+      </div>
+
+      {/* Dᵢₛ.ᵈₐᵥ */}
+      <div className="py-3 min-h-[56px]">
+        <div className="flex items-center justify-between">
+          <p className="text-justify">
+            <span className="font-semibold">
+              Isitish davrining gradus-sutkasi, D
+              <sub className="align-baseline text-[0.7em]">is.dav</sub>
+            </span>
+          </p>
+          {heatingSeason?.D_is_dav != null ? (
+            <span className="font-semibold text-[#1080c2]">
+              D
+              <sub className="align-baseline text-[0.7em]">is.dav</sub> = {heatingSeason.D_is_dav.toFixed(0)} °C·sutka
+            </span>
+          ) : (
+            <span className="text-xs text-red-600 text-right">
+              Isitish davrining gradus-sutkasini aniqlash uchun hududni tanlang.
+            </span>
+          )}
+        </div>
+        {heatingSeason?.D_is_dav != null && climate?.t_in != null && (
+          <p className="text-xs text-gray-500 italic mt-1">
+            D<sub className="text-[0.7em]">is.dav</sub> = (t<sub className="text-[0.7em]">i</sub> - t<sub className="text-[0.7em]">is.dav</sub>) × Z<sub className="text-[0.7em]">is.dav</sub> = ({climate.t_in} - ({heatingSeason.t_is_dav?.toFixed(1)})) × {heatingSeason.Z_is_dav?.toFixed(0)} = {heatingSeason.D_is_dav?.toFixed(0)}
+          </p>
+        )}
+      </div>
+
+      {/* RₒTal.SG */}
+      <div className="py-3 min-h-[56px]">
+        <div className="flex items-center justify-between">
+          <p className="text-justify">
+            <span className="font-semibold">
+              Sanitariya-gigiena talablariga muvofiq me'yriy (ruxsat etilgan maksimal) qarshilik, R
+              <sub className="align-baseline text-[0.7em]">o</sub>
+              <sup className="align-baseline text-[0.7em]">Tal.SG</sup>
+            </span>
+          </p>
+          {RoTalSG != null ? (
+            <span className="font-semibold text-[#1080c2]">
+              R
+              <sub className="align-baseline text-[0.7em]">o</sub>
+              <sup className="align-baseline text-[0.7em]">Tal.SG</sup> = {RoTalSG.toFixed(2)} m²·°C/Vt
+            </span>
+          ) : (
+            <span className="text-xs text-red-600 text-right">
+              R
+              <sub className="align-baseline text-[0.7em]">o</sub>
+              <sup className="align-baseline text-[0.7em]">Tal.SG</sup> ni hisoblash uchun n, t
+              <sub className="align-baseline text-[0.7em]">i</sub>, t
+              <sub className="align-baseline text-[0.7em]">t</sub>, Δt
+              <sub className="align-baseline text-[0.7em]">t</sub> va α
+              <sub className="align-baseline text-[0.7em]">i</sub> qiymatlari aniqlangan bo'lishi kerak.
+            </span>
+          )}
+        </div>
+        {RoTalSG != null && climate?.t_in != null && climate?.t_out != null && deltaTtResult?.delta_tt != null && alphaI != null && (
+          <p className="text-xs text-gray-500 italic mt-1">
+            R<sub className="text-[0.7em]">o</sub><sup className="text-[0.7em]">Tal.SG</sup> = n(t<sub className="text-[0.7em]">i</sub> - t<sub className="text-[0.7em]">t</sub>) / (Δt<sub className="text-[0.7em]">t</sub> × α<sub className="text-[0.7em]">i</sub>) = 1×({climate.t_in} - ({climate.t_out})) / ({deltaTtResult.delta_tt.toFixed(1)} × {alphaI.toFixed(1)}) = {RoTalSG.toFixed(2)}
+          </p>
+        )}
+      </div>
+
+      {/* RₒTal. */}
+      <div className="py-3 min-h-[56px]">
+        <div className="flex items-center justify-between">
+          <p className="text-justify">
+            <span className="font-semibold">
+              To'suvchi konstruksiyaning talab etilgan issiqlik uzatilishiga keltirilgan qarshiligi, R
+              <sub className="align-baseline text-[0.7em]">o</sub>
+              <sup className="align-baseline text-[0.7em]">Tal.</sup>
+              {initial?.protectionLevel && (
+                <span>{" "}(issiqlik himoyasining {initial.protectionLevel} darajasi)</span>
+              )}
+            </span>
+          </p>
+          {RoTalab != null ? (
+            <span className="font-semibold text-[#1080c2]">
+              R
+              <sub className="align-baseline text-[0.7em]">o</sub>
+              <sup className="align-baseline text-[0.7em]">Tal.</sup>
+              {" "}= {RoTalab.toFixed(2)} m²·°C/Vt
+            </span>
+          ) : (
+            <span className="text-xs text-red-600 text-right">
+              RₒTal. ni hisoblash uchun kerakli parametrlarni tanlang.
+            </span>
+          )}
+        </div>
+        {RoResult?.row != null && (
+          <p className="text-xs text-gray-500 italic mt-1">
+            {getRoTalNote(RoResult.row, initial?.protectionLevel)}
+          </p>
+        )}
+      </div>
+
+      {/* Rₖ */}
+      <div className="py-3 min-h-[56px]">
+        <div className="flex items-center justify-between">
+          <p className="text-justify">
+            <span className="font-semibold">
+              Ko'p qatlamli to'suvchi konstruksiyaning termik qarshiligi, R
+              <sub className="align-baseline text-[0.7em]">k</sub>
+            </span>
+          </p>
+          {Rk != null && Rk > 0 ? (
+            <span className="font-semibold text-[#1080c2]">
+              R
+              <sub className="align-baseline text-[0.7em]">k</sub> = {Rk.toFixed(2)} m²·°C/Vt
+            </span>
+          ) : (
+            <span className="text-xs text-red-600 text-right">
+              To'suvchi konstruksiya qatlamini kiriting.
+            </span>
+          )}
+        </div>
+        {Rk != null && Rk > 0 && layers && layers.length > 0 && (
+          <p className="text-xs text-gray-500 italic mt-1">
+            R<sub className="text-[0.7em]">k</sub> = R<sub className="text-[0.7em]">1</sub>+R<sub className="text-[0.7em]">2</sub>+...+R<sub className="text-[0.7em]">{layers.length}</sub> = {layers.map(l => {
+              const d_m = (Number(l.thickness_mm) || 0) / 1000;
+              const lam = Number(l.lambda) || 0;
+              return d_m > 0 && lam > 0 ? (d_m / lam).toFixed(2) : "0";
+            }).join(" + ")} = {Rk.toFixed(2)}
+          </p>
+        )}
+      </div>
+
+      {/* Rₒ */}
+      <div className="py-3 min-h-[56px]">
+        <div className="flex items-center justify-between">
+          <p className="text-justify">
+            <span className="font-semibold">
+              To'suvchi konstruksiyalarning issiqlik uzatilishiga keltirilgan qarshiligi, R
+              <sub className="align-baseline text-[0.7em]">o</sub>
+            </span>
+          </p>
+          {Ro_calc != null ? (
+            <span className="font-semibold text-[#1080c2]">
+              R
+              <sub className="align-baseline text-[0.7em]">o</sub> = {Ro_calc.toFixed(2)} m²·°C/Vt
+            </span>
+          ) : (
+            <span className="text-xs text-red-600 text-right">
+              R
+              <sub className="align-baseline text-[0.7em]">o</sub> ni hisoblash uchun α
+              <sub className="align-baseline text-[0.7em]">i</sub>, R
+              <sub className="align-baseline text-[0.7em]">k</sub> va α
+              <sub className="align-baseline text-[0.7em]">t</sub> qiymatlari aniqlangan bo'lishi kerak.
+            </span>
+          )}
+        </div>
+        {Ro_calc != null && alphaI != null && alphaT != null && Rk != null && (
+          <p className="text-xs text-gray-500 italic mt-1">
+            R<sub className="text-[0.7em]">o</sub> = 1/α<sub className="text-[0.7em]">i</sub> + R<sub className="text-[0.7em]">k</sub> + 1/α<sub className="text-[0.7em]">t</sub> = 1/{alphaI.toFixed(1)} + {Rk.toFixed(2)} + 1/{alphaT.toFixed(0)} = {Ro_calc.toFixed(2)}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function ConstructionResultSummary({ Ro_calc, RoTalab }) {
+  if (Ro_calc == null || RoTalab == null) return null;
+
+  const RoStr = Ro_calc.toFixed(2);
+  const RoTalStr = RoTalab.toFixed(2);
+  const RoRounded = Number(RoStr);
+  const RoTalRounded = Number(RoTalStr);
+  const isCompliant = RoRounded >= RoTalRounded;
+
+  const relationText = RoRounded > RoTalRounded
+    ? "talab etilganidan"
+    : RoRounded === RoTalRounded
+      ? "talab etilganiga"
+      : "talab etilganidan";
+
+  const relationWord = RoRounded > RoTalRounded
+    ? "katta"
+    : RoRounded === RoTalRounded
+      ? "teng"
+      : "kichik";
+
+  return (
+    <div className="mt-4 pt-4">
+      <p className="text-lg font-semibold text-gray-900 text-center">
+        To'suvchi konstruksiyalarning issiqlik uzatilishiga keltirilgan qarshiligi (
+        R
+        <sub className="align-baseline text-[0.7em]">o</sub>
+        {" = "}
+        <span className="text-[#1080c2]">{RoStr}</span> m²·°C/Vt) {relationText} (
+        R
+        <sub className="align-baseline text-[0.7em]">o</sub>
+        <sup className="align-baseline text-[0.7em]">Tal.</sup>
+        {" = "}
+        <span className="text-[#1080c2]">{RoTalStr}</span> m²·°C/Vt) {relationWord}.
+      </p>
+      <p
+        className={
+          "mt-1 text-2xl font-bold text-center " +
+          (isCompliant ? "text-emerald-600" : "text-red-600")
+        }
+      >
+        Shartlarga muvofiq {isCompliant ? "keladi" : "kelmaydi"}!
+      </p>
     </div>
   );
 }

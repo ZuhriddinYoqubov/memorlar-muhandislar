@@ -376,7 +376,15 @@ export default function App() {
   );
 
   // Tab holati: birinchi (kalkulyator) yoki ikkinchisida 'Tez kunda' belgisi
-  const [activeTab, setActiveTab] = useState('calculator');
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window === 'undefined') return 'calculator';
+    try {
+      const saved = window.localStorage.getItem('appActiveTab');
+      return saved || 'calculator';
+    } catch {
+      return 'calculator';
+    }
+  });
   // 'Tez kunda' popupi ko'rinishi uchun holat
   const [showSoon, setShowSoon] = useState(false);
   // Global foydalanish hisoblagichi (hozircha o'chirilgan)
@@ -390,6 +398,16 @@ export default function App() {
   //     setUsageCount(localTotal);
   //   } catch {}
   // }, []);
+
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('appActiveTab', activeTab);
+      }
+    } catch {
+      // ignore
+    }
+  }, [activeTab]);
 
   /* Input o'zgarishini qabul qilish */
   const handleChange = (e) => {
@@ -567,7 +585,16 @@ export default function App() {
               </div>
               {/* 3-tab: Energetik pasport va issiqlik texnik hisoblar uchun HeatWizard interfeysi */}
               <div
-                onClick={() => setActiveTab('heat')}
+                onClick={() => {
+                  setActiveTab('heat');
+                  try {
+                    if (typeof window !== 'undefined') {
+                      window.localStorage.setItem('heatWizardActiveIndex', '0');
+                    }
+                  } catch {
+                    // ignore
+                  }
+                }}
                 className={`cursor-pointer pb-2 hover:text-[#025C5A] ${activeTab==='heat' ? 'border-b-2 border-[#025C5A] text-[#025C5A] font-semibold' : 'text-gray-700'}`}
               >
                 Energetik pasport

@@ -1,5 +1,5 @@
 // Eshik va darvozalar uchun issiqlik texnik hisob bosqichi
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { MaterialLayersTable } from "./MaterialLayersTable";
 import { AirLayerControls } from "./ConstructionBlocks";
 import { InitialDataBlock } from "./InitialDataBlock";
@@ -31,21 +31,27 @@ export function EshikDarvozaStep({
     if (Rk == null || !alphaI || !alphaT) return null;
     if (!Number.isFinite(Rk) || !Number.isFinite(alphaI) || !Number.isFinite(alphaT)) return null;
     if (alphaI === 0 || alphaT === 0) return null;
-    
+
     return Rk + 1 / alphaI + 1 / alphaT;
   }, [Rk, alphaI, alphaT]);
+
+  const [showInitial, setShowInitial] = useState(false);
+
   return (
     <div className="space-y-6">
-      <InitialDataBlock 
+      <InitialDataBlock
         hududLabel={hududLabel}
         climate={climate}
         heatingSeason={heatingSeason}
+        collapsible
+        isOpen={showInitial}
+        onToggle={() => setShowInitial((v) => !v)}
       />
 
+      <div className="border-t border-dashed border-gray-200 my-4" />
       {/* Material bloki - qatlamlar jadvali va havo qatlami */}
       <div className="mt-6 bg-white rounded-2xl border border-[#E5E7EB] p-4 md:p-6 shadow-sm space-y-6">
-      
-        
+
         <MaterialLayersTable
           layers={layers}
           updateLayer={updateLayer}
@@ -68,119 +74,119 @@ export function EshikDarvozaStep({
           <AirLayerControls airLayer={airLayer} onChange={setAirLayer} />
         </div>
       </div>
-        {/* Devorning talab etilgan issiqlik uzatilishiga qarshiligi, RₒTal.SG */}
-          <div className="pt-2 ">
-            <p className="flex items-baseline gap-x-2 gap-y-1 font-medium w-full">
-              <span className="leading-snug flex-1 text-justify">
-                Sanitariya-gigiena talablariga muvofiq me'yriy (ruxsat etilgan maksimal) qarshilik, R
-                <sub className="align-baseline text-[0.75em]">o</sub>
-                <sup className="align-baseline text-[0.75em]">Tal.SG</sup>
-              </span>
-              <span className="font-semibold text-[#1080c2] text-right whitespace-nowrap">
-                {RoTalSG != null ? `${RoTalSG.toFixed(2)} m²·°C/Vt` : "—"}
-              </span>
-            </p>
-          </div>
+      {/* Devorning talab etilgan issiqlik uzatilishiga qarshiligi, RₒTal.SG */}
+      <div className="pt-2 ">
+        <p className="flex items-baseline gap-x-2 gap-y-1 font-medium w-full">
+          <span className="leading-snug flex-1 text-justify">
+            Sanitariya-gigiena talablariga muvofiq me'yriy (ruxsat etilgan maksimal) qarshilik, R
+            <sub className="align-baseline text-[0.75em]">o</sub>
+            <sup className="align-baseline text-[0.75em]">Tal.SG</sup>
+          </span>
+          <span className="font-semibold text-[#1080c2] text-right whitespace-nowrap">
+            {RoTalSG != null ? `${RoTalSG.toFixed(2)} m²·°C/Vt` : "—"}
+          </span>
+        </p>
+      </div>
 
-          {/* Eshik (balkonlarnikidan tashqari) va darvozalarning talab etilgan issiqlik uzatilishiga qarshiligi, RₒTal.e.d */}
-          <div className="pt-2 border-t border-dashed border-gray-200">
-            <p className="flex items-baseline gap-x-2 gap-y-1 font-medium w-full">
-              <span className="leading-snug flex-1 text-justify">
-                Eshik (balkonlarnikidan tashqari) va darvozalarning talab etilgan issiqlik uzatilishiga
-                qarshiligi, R
-                <sub className="align-baseline text-[0.75em]">o</sub>
-                <sup className="align-baseline text-[0.75em]">Tal.e.d</sup>
-              </span>
-              <span className="font-semibold text-[#1080c2] text-right whitespace-nowrap">
-                {RoTalED != null ? `${RoTalED.toFixed(2)} m²·°C/Vt` : "—"}
-              </span>
-            </p>
-            <p className="text-xs text-gray-500 italic mt-1">
-              Eshik va darvozalar issiqlik uzatilishiga talab etilgan qarshiligi devorlarning sanitariya-gigena talablariga javob beradigan qarshiligining kamida 0,6 qismidan kam bo'lmasligi kerak (QMQ 2.01.04-18, 2.2).
-            </p>
-          </div>
+      {/* Eshik (balkonlarnikidan tashqari) va darvozalarning talab etilgan issiqlik uzatilishiga qarshiligi, RₒTal.e.d */}
+      <div className="pt-2 border-t border-dashed border-gray-200">
+        <p className="flex items-baseline gap-x-2 gap-y-1 font-medium w-full">
+          <span className="leading-snug flex-1 text-justify">
+            Eshik (balkonlarnikidan tashqari) va darvozalarning talab etilgan issiqlik uzatilishiga
+            qarshiligi, R
+            <sub className="align-baseline text-[0.75em]">o</sub>
+            <sup className="align-baseline text-[0.75em]">Tal.e.d</sup>
+          </span>
+          <span className="font-semibold text-[#1080c2] text-right whitespace-nowrap">
+            {RoTalED != null ? `${RoTalED.toFixed(2)} m²·°C/Vt` : "—"}
+          </span>
+        </p>
+        <p className="text-xs text-gray-500 italic mt-1">
+          Eshik va darvozalar issiqlik uzatilishiga talab etilgan qarshiligi devorlarning sanitariya-gigena talablariga javob beradigan qarshiligining kamida 0,6 qismidan kam bo'lmasligi kerak (QMQ 2.01.04-18, 2.2).
+        </p>
+      </div>
 
-          {/* Konstruksiyaning shartli issiqlik uzatish qarshiligi, Rk */}
-          <div className="pt-2 border-t border-dashed border-gray-200">
-            <p className="flex items-baseline gap-x-2 gap-y-1 font-medium w-full">
-              <span className="leading-snug flex-1 text-justify">
-                Konstruksiyaning shartli issiqlik uzatish qarshiligi, R
-                <sub className="align-baseline text-[0.75em]">k</sub>
-              </span>
-              <span className="font-semibold text-[#1080c2] text-right whitespace-nowrap">
-                {Rk != null ? `${Rk.toFixed(3)} m²·°C/Vt` : "—"}
-              </span>
-            </p>
-            <p className="text-xs text-gray-500 italic mt-1">
-              Konstruksiya qatlamlarining qalinligi va issiqlik o'tkazuvchanlik koeffitsiyentlari asosida hisoblanadi.
-            </p>
-          </div>
+      {/* Konstruksiyaning shartli issiqlik uzatish qarshiligi, Rk */}
+      <div className="pt-2 border-t border-dashed border-gray-200">
+        <p className="flex items-baseline gap-x-2 gap-y-1 font-medium w-full">
+          <span className="leading-snug flex-1 text-justify">
+            Konstruksiyaning shartli issiqlik uzatish qarshiligi, R
+            <sub className="align-baseline text-[0.75em]">k</sub>
+          </span>
+          <span className="font-semibold text-[#1080c2] text-right whitespace-nowrap">
+            {Rk != null ? `${Rk.toFixed(3)} m²·°C/Vt` : "—"}
+          </span>
+        </p>
+        <p className="text-xs text-gray-500 italic mt-1">
+          Konstruksiya qatlamlarining qalinligi va issiqlik o'tkazuvchanlik koeffitsiyentlari asosida hisoblanadi.
+        </p>
+      </div>
 
-          {/* Konstruksiyaning issiqlik uzatish qarshiligi, Ro */}
-          <div className="pt-2 border-t border-dashed border-gray-200">
-            <p className="flex items-baseline gap-x-2 gap-y-1 font-medium w-full">
-              <span className="leading-snug flex-1 text-justify">
-                Konstruksiyaning issiqlik uzatish qarshiligi, R
-                <sub className="align-baseline text-[0.75em]">o</sub>
-              </span>
-              <span className="font-semibold text-[#1080c2] text-right whitespace-nowrap">
-                {Ro != null ? `${Ro.toFixed(3)} m²·°C/Vt` : "—"}
-              </span>
-            </p>
-          </div>
+      {/* Konstruksiyaning issiqlik uzatish qarshiligi, Ro */}
+      <div className="pt-2 border-t border-dashed border-gray-200">
+        <p className="flex items-baseline gap-x-2 gap-y-1 font-medium w-full">
+          <span className="leading-snug flex-1 text-justify">
+            Konstruksiyaning issiqlik uzatish qarshiligi, R
+            <sub className="align-baseline text-[0.75em]">o</sub>
+          </span>
+          <span className="font-semibold text-[#1080c2] text-right whitespace-nowrap">
+            {Ro != null ? `${Ro.toFixed(3)} m²·°C/Vt` : "—"}
+          </span>
+        </p>
+      </div>
 
-          {/* Shart bajarilganligi tekshiruvi */}
-          {Ro != null && RoTalED != null && (
-            <div className="mt-4 pt-4 border-t-2 border-gray-300">
-              {(() => {
-                const RoVal = Ro;
-                const RoTalVal = RoTalED;
-                const RoStr = RoVal.toFixed(2);
-                const RoTalStr = RoTalVal.toFixed(2);
+      {/* Shart bajarilganligi tekshiruvi */}
+      {Ro != null && RoTalED != null && (
+        <div className="mt-4 pt-4 border-t-2 border-gray-300">
+          {(() => {
+            const RoVal = Ro;
+            const RoTalVal = RoTalED;
+            const RoStr = RoVal.toFixed(2);
+            const RoTalStr = RoTalVal.toFixed(2);
 
-                const RoRounded = Number(RoStr);
-                const RoTalRounded = Number(RoTalStr);
-                const isCompliant = RoRounded >= RoTalRounded;
+            const RoRounded = Number(RoStr);
+            const RoTalRounded = Number(RoTalStr);
+            const isCompliant = RoRounded >= RoTalRounded;
 
-                const relationText = RoRounded > RoTalRounded
-                  ? "talab etilganidan"
-                  : RoRounded === RoTalRounded
-                    ? "talab etilganiga"
-                    : "talab etilganidan";
+            const relationText = RoRounded > RoTalRounded
+              ? "talab etilganidan"
+              : RoRounded === RoTalRounded
+                ? "talab etilganiga"
+                : "talab etilganidan";
 
-                const relationWord = RoRounded > RoTalRounded
-                  ? "katta"
-                  : RoRounded === RoTalRounded
-                    ? "teng"
-                    : "kichik";
+            const relationWord = RoRounded > RoTalRounded
+              ? "katta"
+              : RoRounded === RoTalRounded
+                ? "teng"
+                : "kichik";
 
-                return (
-                  <>
-                    <p className="text-lg font-semibold text-gray-900 text-center">
-                      Eshik va darvozalarning issiqlik uzatilishiga keltirilgan qarshiligi (
-                      R
-                      <sub className="align-baseline text-[0.7em]">o</sub>
-                      {" = "}
-                      <span className="text-[#1080c2]">{RoStr}</span> m²·°C/Vt) {relationText} (
-                      R
-                      <sub className="align-baseline text-[0.7em]">o</sub>
-                      <sup className="align-baseline text-[0.7em]">Tal.e.d</sup>
-                      {" = "}
-                      <span className="text-[#1080c2]">{RoTalStr}</span> m²·°C/Vt) {relationWord}.
-                    </p>
-                    <p
-                      className={
-                        "mt-1 text-2xl font-bold text-center " +
-                        (isCompliant ? "text-emerald-600" : "text-red-600")
-                      }
-                    >
-                      Shartlarga muvofiq {isCompliant ? "keladi" : "kelmaydi"}!
-                    </p>
-                  </>
-                );
-              })()}
-            </div>
-          )}
+            return (
+              <>
+                <p className="text-lg font-semibold text-gray-900 text-center">
+                  Eshik va darvozalarning issiqlik uzatilishiga keltirilgan qarshiligi (
+                  R
+                  <sub className="align-baseline text-[0.7em]">o</sub>
+                  {" = "}
+                  <span className="text-[#1080c2]">{RoStr}</span> m²·°C/Vt) {relationText} (
+                  R
+                  <sub className="align-baseline text-[0.7em]">o</sub>
+                  <sup className="align-baseline text-[0.7em]">Tal.e.d</sup>
+                  {" = "}
+                  <span className="text-[#1080c2]">{RoTalStr}</span> m²·°C/Vt) {relationWord}.
+                </p>
+                <p
+                  className={
+                    "mt-1 text-2xl font-bold text-center " +
+                    (isCompliant ? "text-emerald-600" : "text-red-600")
+                  }
+                >
+                  Shartlarga muvofiq {isCompliant ? "keladi" : "kelmaydi"}!
+                </p>
+              </>
+            );
+          })()}
+        </div>
+      )}
     </div>
   );
 }

@@ -12,8 +12,7 @@ export function ProtectionLevelNoteText() {
       { className: "mb-2" },
       "Davlat kapital mablag'lari yoki mahalliy byudjet hisobiga amalga oshiriladigan turar-joy,",
       " davolash-profilaktika va bolalar muassasalari, o'quv yurtlari, internatlar qurilishi,",
-      " rekonstruksiyasi va kapital ta'mirida issiqlik himoyasining 2-darajasini qabul qilish lozim",
-      " (QMQ 2.01.04-18, 2.1* bandi)."
+      " rekonstruksiyasi va kapital ta'mirida issiqlik himoyasining 2-darajasini qabul qilish lozim"
     ),
     React.createElement(
       "p",

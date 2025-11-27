@@ -36,14 +36,16 @@ export function DerazaBalkonStep({
     addLayer,
     airLayer,
     setAirLayer,
+    // Tanlangan variantlar uchun proplar
+    selectedWindowGroup,
+    setSelectedWindowGroup,
+    selectedWindowVariant,
+    setSelectedWindowVariant,
+    selectedWindowGroup2,
+    setSelectedWindowGroup2,
+    selectedWindowVariant2,
+    setSelectedWindowVariant2,
 }) {
-    // 1-variant uchun state
-    const [selectedWindowGroup, setSelectedWindowGroup] = useState("");
-    const [selectedWindowVariant, setSelectedWindowVariant] = useState("");
-
-    // 2-variant uchun state
-    const [selectedWindowGroup2, setSelectedWindowGroup2] = useState("");
-    const [selectedWindowVariant2, setSelectedWindowVariant2] = useState("");
 
     // 1-variant bo'yicha Ro qiymatini olish
     const windowRo = useMemo(() => {
@@ -107,16 +109,22 @@ export function DerazaBalkonStep({
         return null;
     }, [windowRo, windowRo2, RoTalDF]);
 
+    const [showInitial, setShowInitial] = useState(false);
+
     return (
         <div className="space-y-6">
 
-            {/* Dastlabki malumotlar bloki
+            {/* Dastlabki malumotlar bloki */}
             <InitialDataBlock
                 hududLabel={hududLabel}
                 climate={climate}
                 heatingSeason={heatingSeason}
+                collapsible
+                isOpen={showInitial}
+                onToggle={() => setShowInitial((v) => !v)}
             />
 
+              <div className="border-t border-dashed border-gray-200 my-4" />
             {/* Konstruksiya turi tanlash */}
             <section className="space-y-3">
                 <h3 className="text-lg md:text-xl font-semibold text-gray-900">Konstruksiya turi</h3>
@@ -201,8 +209,8 @@ export function DerazaBalkonStep({
                     </div>
                 </div>
                 <div className="my-8" />
-                {/* Shart tekshiruvi */}
-                {acceptedVariant && RoTalDF != null && (
+                {/* Shart tekshiruvi - faqat ikkala variant kiritilganda */}
+                {acceptedVariant && RoTalDF != null && windowRo != null && windowRo2 != null && (
                     <div className="mt-8 p-4 rounded-xl border-2 "
                         style={{
                             backgroundColor: acceptedVariant.Ro >= RoTalDF ? "#f0fdf4" : "#fef2f2",

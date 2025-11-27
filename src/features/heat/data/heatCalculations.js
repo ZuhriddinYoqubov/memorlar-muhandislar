@@ -88,6 +88,92 @@ export function mapObjectTypeToDeltaCategory(objType) {
   }
 }
 
+/**
+ * QMQ 2.01.04-18, 1-jadval asosida namlik rejimini aniqlash
+ * Ichki havo harorati (t_in) va namligi (phi_in) bo'yicha rejimni qaytaradi
+ * 
+ * 1-jadval: Binolar xonalarining namlik rejimi
+ * 
+ * @param {number} t_in - Ichki havo harorati (°C)
+ * @param {number} phi_in - Ichki havo namligi (%)
+ * @returns {string} - Namlik rejimi: "quruq", "normal", "nam", "xo'l"
+ */
+export function getHumidityRegime(t_in, phi_in) {
+  if (t_in == null || phi_in == null) return "normal"; // default
+
+  // 12°C gacha harorat
+  if (t_in < 12) {
+    if (phi_in <= 60) return "quruq";
+    if (phi_in <= 75) return "normal";
+    return "nam";
+  }
+  
+  // 12°C dan 24°C gacha harorat
+  if (t_in >= 12 && t_in <= 24) {
+    if (phi_in <= 50) return "quruq";
+    if (phi_in <= 60) return "normal";
+    if (phi_in <= 75) return "nam";
+    return "xo'l";
+  }
+  
+  // 24°C dan ortiq harorat
+  if (t_in > 24) {
+    if (phi_in <= 40) return "quruq";
+    if (phi_in <= 50) return "normal";
+    if (phi_in <= 60) return "nam";
+    return "xo'l";
+  }
+
+  return "normal";
+}
+
+/**
+ * Harorat va namlik bo'yicha namlik rejimi ma'lumotlarini olish (PDF izoh uchun)
+ * @param {number} t_in - Ichki havo harorati (°C)
+ * @param {number} phi_in - Ichki havo namligi (%)
+ * @returns {object} - Rejim nomi, harorat diapazoni va namlik chegaralari
+ */
+export function getHumidityRegimeInfo(t_in, phi_in) {
+  const regime = getHumidityRegime(t_in, phi_in);
+  
+  // Harorat diapazonini aniqlash
+  let tempRangeLabel;
+  let humidityBounds;
+  
+  if (t_in < 12) {
+    tempRangeLabel = "12°C gacha";
+    humidityBounds = {
+      quruq: "60% gacha",
+      normal: "60% dan 75% gacha",
+      nam: "75% dan ortiq"
+    };
+  } else if (t_in >= 12 && t_in <= 24) {
+    tempRangeLabel = "12°C dan 24°C gacha";
+    humidityBounds = {
+      quruq: "50% gacha",
+      normal: "50% dan 60% gacha",
+      nam: "60% dan 75% gacha",
+      "xo'l": "75% dan ortiq"
+    };
+  } else {
+    tempRangeLabel = "24°C dan ortiq";
+    humidityBounds = {
+      quruq: "40% gacha",
+      normal: "40% dan 50% gacha",
+      nam: "50% dan 60% gacha",
+      "xo'l": "60% dan ortiq"
+    };
+  }
+
+  return {
+    regime,
+    tempRangeLabel,
+    humidityBounds: humidityBounds[regime] || humidityBounds.normal,
+    t_in,
+    phi_in
+  };
+}
+
 export function computeDeltaTt({ objectType, constructionType, t_in, phi_in }) {
   const constructionTypeId = mapConstructionTypeToId(constructionType);
   if (!objectType || !constructionTypeId || t_in == null) {
@@ -98,6 +184,7 @@ export function computeDeltaTt({ objectType, constructionType, t_in, phi_in }) {
       formula_used: null,
       category: null,
       construction_type_id: constructionTypeId,
+      row: null,
     };
   }
 
@@ -107,6 +194,7 @@ export function computeDeltaTt({ objectType, constructionType, t_in, phi_in }) {
   let t_p = null;
   let delta = null;
   let formula_used = "fixed_value";
+  let row = null;
 
   const phiOverride = typeof phi_in === "number" && phi_in > 0 && phi_in <= 100 ? phi_in / 100 : null;
 
@@ -116,9 +204,11 @@ export function computeDeltaTt({ objectType, constructionType, t_in, phi_in }) {
     if (group === "outer_walls") {
       delta = Math.min(raw, 7);
       formula_used = "limited_to_7";
+      row = 1;
     } else if (group === "attic_and_top_floor_slabs") {
       delta = Math.min(raw, 6);
       formula_used = "limited_to_6";
+      row = 2;
     } else {
       delta = null;
       formula_used = null;
@@ -128,17 +218,22 @@ export function computeDeltaTt({ objectType, constructionType, t_in, phi_in }) {
     const raw = t_in - t_p;
     delta = 0.8 * raw;
     formula_used = "0.8*(t_i_minus_t_p)";
+    row = 3;
   } else if (category === "kartoshka_sabzavot_ombor") {
     t_p = computeDewPoint(t_in, objectType, phiOverride);
     delta = t_in - t_p;
     formula_used = "t_i_minus_t_p";
+    row = 4;
   } else if (category === "boshqa") {
     if (group === "outer_walls") {
       delta = 4.0;
+      row = 5;
     } else if (group === "attic_and_top_floor_slabs") {
       delta = 3.5;
+      row = 6;
     } else if (group === "transition_and_unheated_spaces") {
       delta = 2.0;
+      row = 7;
     } else {
       delta = null;
       formula_used = null;
@@ -154,6 +249,7 @@ export function computeDeltaTt({ objectType, constructionType, t_in, phi_in }) {
     formula_used,
     category,
     construction_type_id: constructionTypeId,
+    row,
   };
 }
 
@@ -198,7 +294,16 @@ export function getRoPrFromTables({ protectionLevel, objectType, floors, D_is_da
   const byD = byCategory?.[Dband];
   const value = byD?.[constructionTypeId];
 
-  if (typeof value === "number" && value > 0) return value;
+  // Jadval band raqamini aniqlash (2b jadval uchun)
+  let row = null;
+  if (category === "res_low") row = 1;
+  else if (category === "res_high") row = 2;
+  else if (category === "public") row = 3;
+  else if (category === "industrial") row = 4;
+
+  if (typeof value === "number" && value > 0) {
+    return { value, row };
+  }
   return null;
 }
 
@@ -222,5 +327,152 @@ export function getRoTalForDerazaFonar({ protectionLevel, objectType, D_is_dav, 
   const value = byD?.[constructionTypeId];
 
   if (typeof value === "number" && value > 0) return value;
+  return null;
+}
+
+// =====================================================
+// PDF IZOHLAR UCHUN FUNKSIYALAR
+// =====================================================
+
+/**
+ * φᵢ (ichki havo namligi) uchun izoh
+ * QMQ 2.01.04-18, 1-jadval asosida
+ * @param {object} humidityRegimeInfo - getHumidityRegimeInfo(t_in, phi_in) dan olingan ma'lumot
+ */
+export function getPhiNote(humidityRegimeInfo) {
+  const info = humidityRegimeInfo;
+  if (info && info.regime && info.tempRangeLabel && info.humidityBounds) {
+    return `QMQ 2.01.04-18 "Qurilish issiqlik texnikasi", 1-jadval bo'yicha xona ichidagi havo harorati ${info.tempRangeLabel} va namligi ${info.humidityBounds} bo'lganda namlik rejimi "${info.regime}" hisoblanadi.`;
+  }
+  return `QMQ 2.01.04-18 "Qurilish issiqlik texnikasi", 1-jadval bo'yicha namlik rejimi aniqlanadi.`;
+}
+
+/**
+ * t_is.dav (isitish davri o'rtacha harorati) uchun izoh
+ * QMQ 2.01.01-22, 4-jadval: 20-qator (t_8.ortacha_harorat), 22-qator (t_12.ortacha_harorat)
+ */
+export function getTIsDavNote() {
+  return `O'RQ 2.01.01-22 "Loyihalash uchun iqlimiy va fizikaviy-geologik ma'lumotlar" 4-jadval "Tashqi havoning parametrlari", 20-22-qatorlar o'rtacha qiymati`;
+}
+
+/**
+ * Z_is.dav (isitish davri davomiyligi) uchun izoh
+ * QMQ 2.01.01-22, 4-jadval: 19-qator (t_8.davom_etish_sutka), 21-qator (t_12.davom_etish_sutka)
+ */
+export function getZIsDavNote() {
+  return `O'RQ 2.01.01-22 "Loyihalash uchun iqlimiy va fizikaviy-geologik ma'lumotlar" 4-jadval "Tashqi havoning parametrlari", 19-21-qatorlar o'rtacha qiymati`;
+}
+
+/**
+ * t_t (tashqi havoning hisobiy qishki harorati) uchun izoh
+ * QMQ 2.01.01-22, 4-jadval: 17-qator
+ */
+export function getTOutNote() {
+  return `O'RQ 2.01.01-22 boyicha ta'minlanganlik 0,92 bo'lgan eng sovuq besh kunlikning o'rtacha haroratiga teng. 4-jadval "Tashqi havoning parametrlari", 17-qator`;
+}
+
+/**
+ * Δt_t (me'yoriy harorat farqi) uchun izoh
+ * @param {number} row - jadval band raqami (1-7)
+ */
+export function getDeltaTtNote(row) {
+  if (row != null) {
+    return `QMQ 2.01.04-18 "Qurilish issiqlik texnikasi", 4-jadval, ${row}-band`;
+  }
+  return null;
+}
+
+/**
+ * α_i (ichki yuzaning issiqlik berish koeffitsienti) uchun izoh
+ * @param {number} row - jadval band raqami
+ */
+export function getAlphaINote(row) {
+  if (row != null) {
+    return `QMQ 2.01.04-18 "Qurilish issiqlik texnikasi", 5-jadval, ${row}-band`;
+  }
+  return null;
+}
+
+/**
+ * α_t (tashqi yuzaning issiqlik berish koeffitsienti) uchun izoh
+ * @param {number} row - jadval band raqami
+ */
+export function getAlphaTNote(row) {
+  if (row != null) {
+    return `QMQ 2.01.04-18 "Qurilish issiqlik texnikasi", 6-jadval, ${row}-band`;
+  }
+  return null;
+}
+
+/**
+ * D_is.dav (isitish davrining gradus-sutkasi) uchun formula izohi
+ * @param {object} params - {t_in, t_is_dav, Z_is_dav, D_d_dav}
+ */
+export function getDIsDavNote(params) {
+  const { t_in, t_is_dav, Z_is_dav, D_d_dav } = params;
+  if (t_in != null && t_is_dav != null && Z_is_dav != null) {
+    return {
+      formula: `D_is.dav = (t_i - t_is.dav) × Z_is.dav`,
+      calculation: `(${t_in} - (${t_is_dav.toFixed(1)})) × ${Z_is_dav.toFixed(0)} = ${D_d_dav?.toFixed(0) || "—"}`
+    };
+  }
+  return null;
+}
+
+/**
+ * R_o^Tal.SG (sanitariya-gigiena talablariga muvofiq qarshilik) uchun formula izohi
+ * @param {object} params - {t_in, t_out, delta_t_n, alpha_i, Ro_MG}
+ */
+export function getRoTalSGNote(params) {
+  const { t_in, t_out, delta_t_n, alpha_i, Ro_MG } = params;
+  if (t_in != null && t_out != null && delta_t_n != null && alpha_i != null) {
+    return {
+      formula: `R_o^Tal.SG = n(t_i - t_t) / (Δt_t × α_i)`,
+      calculation: `1×(${t_in} - (${t_out})) / (${delta_t_n.toFixed(1)} × ${alpha_i.toFixed(1)}) = ${Ro_MG?.toFixed(2) || "—"}`
+    };
+  }
+  return null;
+}
+
+/**
+ * R_o^Tal. (talab etilgan issiqlik qarshiligi) uchun izoh
+ * @param {number} row - jadval band raqami
+ * @param {string} protectionLevel - issiqlik himoyasi darajasi
+ */
+export function getRoTalNote(row, protectionLevel) {
+  if (row != null) {
+    return `QMQ 2.01.04-18 "Qurilish issiqlik texnikasi", 2b jadval, ${row}-band, issiqlik himoyasining ${protectionLevel || "II"} darajasi`;
+  }
+  return null;
+}
+
+/**
+ * R_k (ko'p qatlamli konstruksiyaning termik qarshiligi) uchun formula izohi
+ * @param {array} layers - qatlamlar ro'yxati
+ * @param {number} R_k - umumiy termik qarshilik
+ */
+export function getRkNote(layers, R_k) {
+  if (layers && layers.length > 0) {
+    const rValues = layers.map(l => l.R || 0);
+    return {
+      formula: `R_k = R_1 + R_2 + ... + R_${layers.length}`,
+      calculation: `${rValues.join(" + ")} = ${R_k?.toFixed(2) || "—"}`
+    };
+  }
+  return null;
+}
+
+/**
+ * R_o (issiqlik uzatilishga keltirilgan qarshilik) uchun formula izohi
+ * @param {object} params - {alpha_i, alpha_t, R_k, Ro_calc}
+ */
+export function getRoNote(params) {
+  const { alpha_i, alpha_t, R_k, Ro_calc } = params;
+  if (alpha_i != null && alpha_t != null && R_k != null) {
+    return {
+      formula: `R_o = 1/α_i + R_k + 1/α_t`,
+      calculation: `1/${alpha_i.toFixed(1)} + ${R_k.toFixed(2)} + 1/${alpha_t.toFixed(0)} = ${Ro_calc?.toFixed(2) || "—"}`
+    };
+  }
   return null;
 }

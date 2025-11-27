@@ -127,14 +127,38 @@ export function CustomWindowSelect({ groupId, typeName, onSelectGroup, onSelectT
       categories={WINDOWS}
       getSubItems={(group) => Array.isArray(group.tur) ? group.tur : []}
       getCategoryKey={(group) => String(group.id)}
-      getCategoryLabel={(group) => (
-        <>
-          <span className="font-semibold mr-1">{group.id}.</span>
-          {group.group}
-        </>
-      )}
+      getCategoryLabel={(group) => {
+        // Agar guruhda faqat bitta variant bo'lsa, Ro qiymatini guruh qatorida ko'rsatamiz
+        const singleVariant = group.tur?.length === 1 ? group.tur[0] : null;
+        return (
+          <div className="flex items-center justify-between gap-3 w-full">
+            <span className="flex-1">
+              <span className="font-semibold mr-1">{group.id}.</span>
+              {group.group}
+            </span>
+            {singleVariant && singleVariant.Ro != null && (
+              <span className="flex-shrink-0 text-xs font-semibold text-[#1080c2]">
+                R<sub className="text-[0.6em]">o</sub> = {singleVariant.Ro.toFixed(2)}
+              </span>
+            )}
+          </div>
+        );
+      }}
       getSubItemKey={(item) => item.name}
-      getSubItemLabel={(item) => item.name}
+      getSubItemLabel={(item, group) => {
+        // Agar guruhda faqat bitta variant bo'lsa, Ro ni ko'rsatmaymiz (guruhda ko'rsatilgan)
+        const showRo = group.tur?.length > 1;
+        return (
+          <div className="flex items-center justify-between gap-3 w-full">
+            <span className="flex-1">{item.name}</span>
+            {showRo && item.Ro != null && (
+              <span className="flex-shrink-0 text-xs font-semibold text-[#1080c2]">
+                R<sub className="text-[0.6em]">o</sub> = {item.Ro.toFixed(2)}
+              </span>
+            )}
+          </div>
+        );
+      }}
       onSelect={(group, item) => {
         onSelectGroup && onSelectGroup(String(group.id));
         onSelectType && onSelectType(item.name);
@@ -259,7 +283,7 @@ export function CustomTwoLevelSelect({
                                       setOpen(false);
                                     }}
                                   >
-                                    {getSubItemLabel(item)}
+                                    {getSubItemLabel(item, cat)}
                                   </button>
                                 </li>
                               ))}
@@ -316,7 +340,7 @@ export function CustomTwoLevelSelect({
                                 }}
                                 className="w-full text-left px-3 py-2 rounded-lg text-xs md:text-sm border border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50"
                               >
-                                {getSubItemLabel(item)}
+                                {getSubItemLabel(item, cat)}
                               </button>
                             ));
                           })()}

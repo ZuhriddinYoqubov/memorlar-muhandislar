@@ -31,7 +31,7 @@ export default function IssiqlikTexnikHisob() {
 
   const [layers, setLayers] = useState([
     // Namuna qatlamlari (ichkaridan tashqariga)
-    { id: 1, name: "Qurilish materiali", thickness_mm: "", rho: "", lambda: "", mu: 10 },
+    { id: 1, name: "Qurilish materialini tanlang", thickness_mm: "", rho: "", lambda: "", mu: 10 },
   ]);
 
   const [airLayer, setAirLayer] = useState({
