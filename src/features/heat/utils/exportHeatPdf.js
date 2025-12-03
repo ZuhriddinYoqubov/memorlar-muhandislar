@@ -623,13 +623,13 @@ export function exportHeatStepPdf({ initial, climate, heatingSeason, heatStep, C
       note: formatFormulaNote(getDIsDavNote({ t_in: saved?.t_in, t_is_dav: saved?.t_is_dav, Z_is_dav: saved?.Z_is_dav, D_d_dav: saved?.D_d_dav }), "D_is_dav")
     },
     {
-      label: [{ text: "Sanitariya-gigiena talablariga muvofiq me'yoriy (ruxsat etilgan maksimal) qarshilik, R" }, { text: "o", fontSize: 6, baseline: -3 }, { text: "" }, { text: "Tal.SG", fontSize: 5, baseline: 5 }],
-      value: saved?.Ro_MG != null ? [{ text: "R" }, { text: "o", fontSize: 6, baseline: -3 }, { text: "" }, { text: "Tal.SG", fontSize: 5, baseline: 5 }, { text: ` = ${saved.Ro_MG.toFixed(2)} m²·°C/Vt` }] : "—",
+      label: [{ text: "Sanitariya-gigiena talablariga muvofiq me'yoriy (ruxsat etilgan maksimal) qarshilik, R" }, { text: "o", fontSize: 6, baseline: -3 }, { text: "Tal.SG", fontSize: 5, baseline: 6 }],
+      value: saved?.Ro_MG != null ? [{ text: "R" }, { text: "o", fontSize: 6, baseline: -3 }, { text: "Tal.SG", fontSize: 5, baseline: 6 }, { text: ` = ${saved.Ro_MG.toFixed(2)} m²·°C/Vt` }] : "—",
       note: formatFormulaNote(getRoTalSGNote({ t_in: saved?.t_in, t_out: saved?.t_out, delta_t_n: saved?.delta_t_n, alpha_i: saved?.alpha_i, Ro_MG: saved?.Ro_MG }), "RoTalSG")
     },
     {
-      label: [{ text: "To'suvchi konstruksiyaning talab etilgan issiqlik uzatilishiga keltirilgan qarshiligi, R" }, { text: "o", fontSize: 6, baseline: -3 }, { text: "" }, { text: "Tal.", fontSize: 5, baseline: 5 }],
-      value: saved?.RoTalab != null ? [{ text: "R" }, { text: "o", fontSize: 6, baseline: -3 }, { text: "" }, { text: "Tal.", fontSize: 5, baseline: 5 }, { text: ` = ${saved.RoTalab.toFixed(2)} m²·°C/Vt` }] : "—",
+      label: [{ text: "To'suvchi konstruksiyaning talab etilgan issiqlik uzatilishiga keltirilgan qarshiligi, R" }, { text: "o", fontSize: 6, baseline: -3 }, { text: "Tal.", fontSize: 5, baseline: 6 }],
+      value: saved?.RoTalab != null ? [{ text: "R" }, { text: "o", fontSize: 6, baseline: -3 }, { text: "Tal.", fontSize: 5, baseline: 6 }, { text: ` = ${saved.RoTalab.toFixed(2)} m²·°C/Vt` }] : "—",
       note: getRoTalNote(saved?.RoResult_row, saved?.protectionLevel)
     },
     {
@@ -700,8 +700,7 @@ export function exportHeatStepPdf({ initial, climate, heatingSeason, heatStep, C
         text: [
           { text: "talab etilganidan ( R" },
           { text: "o", fontSize: 8, baseline: -3 },
-          { text: "" },
-          { text: "Tal.", fontSize: 7, baseline: 5 },
+          { text: "Tal.", fontSize: 7, baseline: 6 },
           { text: ` = ${RoTalabVal.toFixed(2)} m²·°C/Vt) ${isSatisfied ? 'katta.' : 'kichik.'}` }
         ],
         fontSize: 12,

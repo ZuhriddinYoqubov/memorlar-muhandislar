@@ -19,6 +19,7 @@ import {
   exportNormativeStepPdf,
   exportHeatStepPdf,
 } from "./utils/exportHeatPdf";
+import { exportHeatStepPdfReact } from "./utils/exportHeatPdfReact";
 import { MaterialTreeModal } from "./controls/MaterialTreeModal";
 import { MaterialLayersTable } from "./controls/MaterialLayersTable";
 import { ProtectionLevelInfoModal, RibHeightInfoModal } from "./controls/InfoModals";
@@ -1264,13 +1265,23 @@ export default function HeatWizard() {
         };
       }
 
-      exportHeatStepPdf({
+      // React-pdf bilan eksport (asosiy)
+      exportHeatStepPdfReact({
         initial,
         climate,
         heatingSeason,
         heatStep: heatStepMeta,
         CONSTRUCTION_TYPES,
       });
+      
+      // pdfmake versiyasi (zaxira)
+      // exportHeatStepPdf({
+      //   initial,
+      //   climate,
+      //   heatingSeason,
+      //   heatStep: heatStepMeta,
+      //   CONSTRUCTION_TYPES,
+      // });
       return;
     }
 
