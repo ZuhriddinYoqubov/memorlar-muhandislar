@@ -485,7 +485,7 @@ export function exportHeatStepPdf({ initial, climate, heatingSeason, heatStep, C
     {
       label: [{ text: "Ichki havoning nisbiy namligi φ" }, { text: "i", fontSize: 6, baseline: -3 }, { text: ", %" }],
       value: climate.phi_in != null ? `${climate.phi_in} %` : "—",
-      note: getPhiNote(saved?.humidityRegimeInfo)
+      note: getPhiNote(saved?.humidityRegimeInfo, climate?.phi_in)
     },
     {
       label: [{ text: "O'rtacha kunlik havo harorati 10 °C dan kam yoki unga teng bo'lgan davrning o'rtacha harorati, t" }, { text: "is.dav", fontSize: 6, baseline: -3 }],

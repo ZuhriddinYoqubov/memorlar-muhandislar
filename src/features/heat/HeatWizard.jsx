@@ -1235,8 +1235,8 @@ export default function HeatWizard() {
         return;
       }
 
-      // Agar savedState yo'q bo'lsa, hozirgi layers bilan to'ldirish
-      if (!heatStepMeta.savedState || !heatStepMeta.savedState.layers) {
+      // Agar savedState yo'q bo'lsa yoki layers bo'sh bo'lsa, hozirgi layers bilan to'ldirish
+      if (!heatStepMeta.savedState || !heatStepMeta.savedState.layers || heatStepMeta.savedState.layers.length === 0) {
         heatStepMeta = {
           ...heatStepMeta,
           savedState: {
@@ -1265,9 +1265,20 @@ export default function HeatWizard() {
         };
       }
 
+      // Province va region nomlarini topish
+      const provinceData = REGIONS.find(p => p.viloyat === initial.province);
+      const provinceName = provinceData?.viloyat || initial.province || "Viloyat";
+      const regionIndex = parseInt(initial.region, 10);
+      const regionData = provinceData?.hududlar?.[regionIndex];
+      const regionName = regionData?.hudud || (initial.region !== null && initial.region !== undefined && initial.region !== "" ? String(initial.region) : "Tuman/Shahar");
+
       // React-pdf bilan eksport (asosiy)
       exportHeatStepPdfReact({
-        initial,
+        initial: {
+          ...initial,
+          provinceName,
+          regionName,
+        },
         climate,
         heatingSeason,
         heatStep: heatStepMeta,

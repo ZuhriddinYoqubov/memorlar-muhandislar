@@ -67,9 +67,16 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica',
   },
   pageContent: {
+       padding: 15,
+  },
+  pageBorder: {
+    position: 'absolute',
+    top: 15,
+    left: 15,
+    right: 15,
+    bottom: 15,
     border: '1.5pt solid #1080C2',
     borderRadius: 8,
-    padding: 15,
   },
   mathText: {
     fontFamily: 'NotoSansMath',
@@ -78,7 +85,7 @@ const styles = StyleSheet.create({
     fontFamily: 'NotoSansMath',
   },
   section: {
-    marginBottom: 15,
+    marginBottom: 5,
   },
   pageTitle: {
     fontSize: 14,
@@ -92,12 +99,12 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#888888',
     textAlign: 'center',
-    marginBottom: 15,
+    marginBottom: 10,
   },
   sectionTitle: {
     fontSize: 10,
     fontWeight: 'bold',
-    marginTop: 15,
+    marginTop: 10,
     marginBottom: 8,
     marginLeft: 10,
     marginRight: 10,
@@ -106,11 +113,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderBottomWidth: 0.5,
     borderBottomColor: '#E8E8E8',
-    paddingTop: 3,
+    paddingTop: 1,
     paddingBottom: 2,
     marginLeft: 10,
     marginRight: 10,
-    justifyContent: "space-between"
+    justifyContent: "space-between",
+    minHeight:14
 
   },
   label: {
@@ -143,8 +151,8 @@ const styles = StyleSheet.create({
     fontFamily: 'NotoSansMath'
   },
   table: {
-    marginTop: 10,
-    marginBottom: 10,
+    marginTop: 0,
+    marginBottom: 0,
   },
   tableHeader: {
     flexDirection: 'row',
@@ -165,23 +173,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   conclusion: {
-    marginTop: 20,
-    padding: 15,
+    marginTop: 15,
+    padding: 10,
     backgroundColor: '#F0F8FF',
     borderRadius: 8,
-   
+
   },
   conclusionText: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: 'semibold',
     marginBottom: 5,
     textAlign: 'center',
   },
   conclusionResult: {
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginTop: 10,
+    
   },
   successText: {
     color: '#00A064',
@@ -206,6 +214,10 @@ const HeatPdfDocument = ({ initial, climate, heatingSeason, heatStep, constructi
   const typePart = hasValidType ? `, ${rawType}` : "";
   const objectInfo = `${objectName}${typePart} bo'yicha`;
 
+  // Province va Region nomlarini olish (HeatWizard dan yuborilgan)
+  const provinceName = initial.provinceName || initial.province || "Viloyat";
+  const regionName = initial.regionName || initial.region || "Tuman/Shahar";
+
   // Xulosa
   const RoCalc = saved?.Ro_calc;
   const RoTalabVal = saved?.RoTalab;
@@ -222,12 +234,13 @@ const HeatPdfDocument = ({ initial, climate, heatingSeason, heatStep, constructi
           <Text style={styles.companyName}>ARCHIPELAG MCHJ</Text>
           <Text style={styles.objectInfo}>{objectInfo}</Text>
           <Text style={styles.mainTitle}>ISSIQLIK TEXNIK XISOBI</Text>
-          <Text style={styles.yearInfo}>{initial.province || "Viloyat"} - {currentYear}-yil</Text>
+          <Text style={styles.yearInfo}>{provinceName} - {currentYear}-yil</Text>
         </View>
       </Page>
 
       {/* 2-SAHIFA: HISOB */}
       <Page size="A4" style={styles.page}>
+        <View style={styles.pageBorder} fixed />
         <View style={styles.pageContent}>
           {/* Sarlavha */}
           <Text style={styles.pageTitle}>
@@ -241,11 +254,11 @@ const HeatPdfDocument = ({ initial, climate, heatingSeason, heatStep, constructi
           <Text style={styles.sectionTitle}>Dastlabki ma'lumotlar</Text>
 
           {/* Hudud */}
-          <View style={{ flexDirection: 'row', marginLeft: 10, marginRight: 10, marginBottom: 5 }}>
+          <View style={styles.row}>
             <Text style={{ fontSize: 9, width: 40 }}>Hudud</Text>
             <Text style={{ flex: 1 }}></Text>
             <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold' }}>
-              {initial.province || "Viloyat"}, {initial.region || "Tuman/Shahar"}
+              {provinceName}, {regionName}
             </Text>
           </View>
 
@@ -280,8 +293,8 @@ const HeatPdfDocument = ({ initial, climate, heatingSeason, heatStep, constructi
               </Text>
             </View>
           </View>
-          {saved?.humidityRegimeInfo && getPhiNote(saved.humidityRegimeInfo) && (
-            <Text style={styles.note}>{getPhiNote(saved.humidityRegimeInfo)}</Text>
+          {saved?.humidityRegimeInfo && getPhiNote(saved.humidityRegimeInfo, climate?.phi_in) && (
+            <Text style={styles.note}>{getPhiNote(saved.humidityRegimeInfo, climate?.phi_in)}</Text>
           )}
 
           {/* t_is_dav */}
@@ -607,7 +620,7 @@ const HeatPdfDocument = ({ initial, climate, heatingSeason, heatStep, constructi
           )}
 
           {/* Footer */}
-          <View style={{ position: 'absolute', bottom: 20, left: 20, right: 20 }}>
+          <View style={{ position: 'absolute', bottom: -10, left: 20, right: 20 }}>
             <Text style={{ fontSize: 8, color: '#888888', textAlign: 'center' }}>
               © {currentYear} | Loyiha qiymati kalkulyatori
             </Text>

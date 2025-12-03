@@ -330,7 +330,6 @@ export function getRoTalForDerazaFonar({ protectionLevel, objectType, D_is_dav, 
   return null;
 }
 
-// =====================================================
 // PDF IZOHLAR UCHUN FUNKSIYALAR
 // =====================================================
 
@@ -338,11 +337,12 @@ export function getRoTalForDerazaFonar({ protectionLevel, objectType, D_is_dav, 
  * φᵢ (ichki havo namligi) uchun izoh
  * QMQ 2.01.04-18, 1-jadval asosida
  * @param {object} humidityRegimeInfo - getHumidityRegimeInfo(t_in, phi_in) dan olingan ma'lumot
+ * @param {number} phi_in - ichki namlik qiymati
  */
-export function getPhiNote(humidityRegimeInfo) {
+export function getPhiNote(humidityRegimeInfo, phi_in) {
   const info = humidityRegimeInfo;
-  if (info && info.regime && info.tempRangeLabel && info.humidityBounds) {
-    return `QMQ 2.01.04-18, 1-jadval bo'yicha xona ichidagi havo harorati ${info.tempRangeLabel} va namligi ${info.humidityBounds} bo'lganda namlik rejimi "${info.regime}" hisoblanadi.`;
+  if (info && info.regime && info.tempRangeLabel) {
+    return `QMQ 2.01.04-18, 1-jadval bo'yicha xona ichidagi havo harorati ${info.tempRangeLabel} va namligi ${phi_in != null ? phi_in + '%' : info.humidityBounds} bo'lganda namlik rejimi "${info.regime}" hisoblanadi.`;
   }
   return `QMQ 2.01.04-18 "Qurilish issiqlik texnikasi", 1-jadval bo'yicha namlik rejimi aniqlanadi.`;
 }
