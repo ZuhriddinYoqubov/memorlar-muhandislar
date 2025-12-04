@@ -21,6 +21,7 @@ import {
 } from "./utils/exportHeatPdf";
 import { exportHeatStepPdfReact } from "./utils/exportHeatPdfReact";
 import { exportWindowStepPdfReact } from "./utils/exportWindowPdf.jsx";
+import { exportDoorStepPdfReact } from "./utils/exportDoorPdf.jsx";
 import { MaterialTreeModal } from "./controls/MaterialTreeModal";
 import { MaterialLayersTable } from "./controls/MaterialLayersTable";
 import { ProtectionLevelInfoModal, RibHeightInfoModal } from "./controls/InfoModals";
@@ -1307,6 +1308,37 @@ export default function HeatWizard() {
           climate,
           heatingSeason,
           heatStep: heatStepMeta,
+        });
+      } else if (currentConstructionType === "eshik_darvoza") {
+        console.log('Eshik PDF export chaqirildi', {
+          heatStepMeta: !!heatStepMeta,
+          savedState: !!heatStepMeta?.savedState,
+          layers: heatStepMeta?.savedState?.layers?.length,
+          initial: !!initial,
+          climate: !!climate,
+          heatingSeason: !!heatingSeason
+        });
+        
+        if (!heatStepMeta) {
+          window.alert("Eshik PDF yaratish uchun avval ma'lumotlarni saqlang!");
+          return;
+        }
+        
+        if (!heatStepMeta.savedState || !heatStepMeta.savedState.layers || heatStepMeta.savedState.layers.length === 0) {
+          window.alert("Eshik PDF yaratish uchun avval materiallarni tanlang va saqlang!");
+          return;
+        }
+        
+        exportDoorStepPdfReact({
+          initial: {
+            ...initial,
+            provinceName,
+            regionName,
+          },
+          climate,
+          heatingSeason,
+          heatStep: heatStepMeta,
+          RoTalSG,
         });
       } else {
         exportHeatStepPdfReact({

@@ -95,7 +95,7 @@ export function EshikDarvozaStep({
             Eshik (balkonlarnikidan tashqari) va darvozalarning talab etilgan issiqlik uzatilishiga
             qarshiligi, R
             <sub className="align-baseline text-[0.75em]">o</sub>
-            <sup className="align-baseline text-[0.75em]">Tal.e.d</sup>
+            <sup className="align-baseline text-[0.75em]">Tal.E.D</sup>
           </span>
           <span className="font-semibold text-[#1080c2] text-right whitespace-nowrap">
             {RoTalED != null ? `${RoTalED.toFixed(2)} m²·°C/Vt` : "—"}
