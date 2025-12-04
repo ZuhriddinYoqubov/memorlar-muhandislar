@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
     border: '1.5pt solid #1080C2',
     borderRadius: 8,
     width: '100%',
-    height: '95%',
+    height: '100%',
     padding: 20,
     display: 'flex',
     flexDirection: 'column',

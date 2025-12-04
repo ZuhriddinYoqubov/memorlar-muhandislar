@@ -377,7 +377,7 @@ export function getTOutNote() {
  */
 export function getDeltaTtNote(row) {
   if (row != null) {
-    return `QMQ 2.01.04-18 "Qurilish issiqlik texnikasi", 4-jadval, ${row}-band`;
+    return `QMQ 2.01.04-18 "Qurilish issiqlik texnikasi", 4-jadval`;
   }
   return null;
 }
@@ -388,7 +388,7 @@ export function getDeltaTtNote(row) {
  */
 export function getAlphaINote(row) {
   if (row != null) {
-    return `QMQ 2.01.04-18 "Qurilish issiqlik texnikasi", 5-jadval, ${row}-band`;
+    return `QMQ 2.01.04-18 "Qurilish issiqlik texnikasi", 5-jadval`;
   }
   return null;
 }
@@ -399,7 +399,7 @@ export function getAlphaINote(row) {
  */
 export function getAlphaTNote(row) {
   if (row != null) {
-    return `QMQ 2.01.04-18 "Qurilish issiqlik texnikasi", 6-jadval, ${row}-band`;
+    return `QMQ 2.01.04-18 "Qurilish issiqlik texnikasi", 6-jadval`;
   }
   return null;
 }

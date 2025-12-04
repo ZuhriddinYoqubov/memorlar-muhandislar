@@ -232,7 +232,7 @@ export function DerazaBalkonStep({
                             <div className="flex-1">
                                 <p className="font-semibold text-gray-900 mb-2">
                                     {acceptedVariant.Ro >= RoTalDF
-                                        ? <>Shart {acceptedVariant.number} - variant uchun bajarilmoqda: R<sub className="text-[0.7em]">o</sub><sup className="text-[0.7em]">Tal.D.F.</sup> = {acceptedVariant.Ro.toFixed(2)} ≥ R<sub className="text-[0.7em]">o</sub><sup className="text-[0.7em]">Tal.</sup> = {RoTalDF.toFixed(2)}</>
+                                        ? <>Shart {acceptedVariant.number} - variant uchun bajarilmoqda: R<sub className="text-[0.7em]">o</sub><sup className="text-[0.7em]"></sup> = {acceptedVariant.Ro.toFixed(2)} ≥ R<sub className="text-[0.7em]">o</sub><sup className="text-[0.7em]">Tal.D.F.</sup> = {RoTalDF.toFixed(2)}</>
                                         : `${derazaType === "fonarlar" ? "Fonarlar" : "Deraza va balkon eshiklari"} bo'yicha issiqlik himoyasi darajasi sharti bajarilmadi.`
                                     }
                                 </p>

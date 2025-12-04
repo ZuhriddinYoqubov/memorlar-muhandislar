@@ -20,6 +20,7 @@ import {
   exportHeatStepPdf,
 } from "./utils/exportHeatPdf";
 import { exportHeatStepPdfReact } from "./utils/exportHeatPdfReact";
+import { exportWindowStepPdfReact } from "./utils/exportWindowPdf.jsx";
 import { MaterialTreeModal } from "./controls/MaterialTreeModal";
 import { MaterialLayersTable } from "./controls/MaterialLayersTable";
 import { ProtectionLevelInfoModal, RibHeightInfoModal } from "./controls/InfoModals";
@@ -1235,7 +1236,7 @@ export default function HeatWizard() {
         return;
       }
 
-      // Agar savedState yo'q bo'lsa yoki layers bo'sh bo'lsa, hozirgi layers bilan to'ldirish
+      // Agar savedState yo'q bo'lsa yoki layers bo'sh bo'lsa, hozirgi layers va normativ maydonlar bilan to'ldirish
       if (!heatStepMeta.savedState || !heatStepMeta.savedState.layers || heatStepMeta.savedState.layers.length === 0) {
         heatStepMeta = {
           ...heatStepMeta,
@@ -1258,9 +1259,29 @@ export default function HeatWizard() {
             t_is_dav: heatingSeason?.t_is_dav,
             Z_is_dav: heatingSeason?.Z_is_dav,
             D_d_dav: heatingSeason?.D_d_dav,
+
+            // Normativ parametrlar va ularning jadval satr raqamlari (PDF kommentlar uchun)
             delta_t_n: deltaTtResult?.delta_tt,
+            delta_t_n_row: deltaTtResult?.row,
             alpha_i: alphaI,
+            alpha_i_row:
+              constructionType === "tashqi_devor" ||
+              constructionType === "tashqi_devor_ventfasad" ||
+              constructionType === "eshik_darvoza"
+                ? 1
+                : (ribHeightRatio === "low" ? 1 : (ribHeightRatio === "high" ? 2 : null)),
             alpha_t: alphaT,
+            alpha_t_row: (() => {
+              const id = mapConstructionTypeToId(constructionType);
+              if (id === "1" || id === "2" || id === "4") return 1;
+              if (id === "5") return 2;
+              if (id === "3" || id === "6" || id === "9") return 3;
+              if (id === "7" || id === "8") return 4;
+              return null;
+            })(),
+
+            protectionLevel: initial.protectionLevel,
+            RoResult_row: RoResult?.row,
           }
         };
       }
@@ -1273,17 +1294,33 @@ export default function HeatWizard() {
       const regionName = regionData?.hudud || (initial.region !== null && initial.region !== undefined && initial.region !== "" ? String(initial.region) : "Tuman/Shahar");
 
       // React-pdf bilan eksport (asosiy)
-      exportHeatStepPdfReact({
-        initial: {
-          ...initial,
-          provinceName,
-          regionName,
-        },
-        climate,
-        heatingSeason,
-        heatStep: heatStepMeta,
-        CONSTRUCTION_TYPES,
-      });
+      const currentConstructionType = heatStepMeta?.savedState?.constructionType || constructionType;
+
+      // Deraza/balkon eshiklari uchun alohida PDF layout
+      if (currentConstructionType === "deraza_balkon_eshiklari") {
+        exportWindowStepPdfReact({
+          initial: {
+            ...initial,
+            provinceName,
+            regionName,
+          },
+          climate,
+          heatingSeason,
+          heatStep: heatStepMeta,
+        });
+      } else {
+        exportHeatStepPdfReact({
+          initial: {
+            ...initial,
+            provinceName,
+            regionName,
+          },
+          climate,
+          heatingSeason,
+          heatStep: heatStepMeta,
+          CONSTRUCTION_TYPES,
+        });
+      }
       
       // pdfmake versiyasi (zaxira)
       // exportHeatStepPdf({
