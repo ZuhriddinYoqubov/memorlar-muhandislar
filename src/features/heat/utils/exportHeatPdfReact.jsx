@@ -91,10 +91,10 @@ const HeatPdfDocument = ({ initial, climate, heatingSeason, heatStep, constructi
           {/* Ichki havoning hisobiy harorati */}
           <View style={pdfStyles.row}>
             {/*CHAP BLOK*/}
-            <View style={{ flexDirection: "row", alignItems: 'baseline', maxWidth: '85%', marginRight: 2, flex: 1, justifyContent: "flex-start" }}>
+            <View style={pdfStyles.labelWithSubscript}>
               <Text style={pdfStyles.labelFix}>Ichki havoning hisobiy harorati, </Text>
-              <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold', }}>t</Text>
-              <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold' }}>i</Text>
+              <Text style={pdfStyles.mainVariableText}>t</Text>
+              <Text style={pdfStyles.subscriptText}>i</Text>
             </View>
             {/*O'NG BLOK*/}
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', flexShrink: 0 }}>
@@ -107,10 +107,10 @@ const HeatPdfDocument = ({ initial, climate, heatingSeason, heatStep, constructi
           {/* Ichki havoning nisbiy namligi */}
           <View style={pdfStyles.row}>
             {/*CHAP BLOK*/}
-            <View style={{ flexDirection: "row", alignItems: 'baseline', maxWidth: '85%', marginRight: 2, flex: 1, justifyContent: "flex-start" }}>
+            <View style={pdfStyles.labelWithSubscript}>
               <Text style={pdfStyles.labelFix}>Ichki havoning nisbiy namligi, </Text>
-              <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold', fontFamily: 'NotoSansMath', lineHeight: 0 }}>φ</Text>
-              <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold' }}>i</Text>
+              <Text style={pdfStyles.mathText}>φ</Text>
+              <Text style={pdfStyles.subscriptText}>i</Text>
             </View>
             {/*O'NG BLOK*/}
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', flexShrink: 0 }}>
@@ -126,10 +126,10 @@ const HeatPdfDocument = ({ initial, climate, heatingSeason, heatStep, constructi
           {/* t_is_dav */}
           <View style={pdfStyles.row}>
             {/*CHAP BLOK*/}
-            <View style={{ flexDirection: "row", alignItems: 'baseline', maxWidth: '85%', marginRight: 2, flex: 1, justifyContent: "flex-start" }}>
+            <View style={pdfStyles.labelWithSubscript}>
               <Text style={pdfStyles.labelFix}>O'rtacha kunlik havo harorati 10 °C dan kam yoki unga teng bo'lgan davrning o'rtacha harorati, </Text>
-              <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold' }}>t</Text>
-              <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold' }}>is.dav</Text>
+              <Text style={pdfStyles.mainVariableText}>t</Text>
+              <Text style={pdfStyles.subscriptText}>is.dav</Text>
             </View>
             {/*O'NG BLOK*/}
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', flexShrink: 0 }}>
@@ -145,10 +145,10 @@ const HeatPdfDocument = ({ initial, climate, heatingSeason, heatStep, constructi
           {/* Z_is_dav */}
           <View style={pdfStyles.row}>
             {/*CHAP BLOK*/}
-            <View style={{ flexDirection: "row", alignItems: 'baseline', maxWidth: '85%', marginRight: 2, flex: 1, justifyContent: "flex-start" }}>
+            <View style={pdfStyles.labelWithSubscript}>
               <Text style={pdfStyles.labelFix}>O'rtacha kunlik havo harorati 10 °C dan kam yoki unga teng bo'lgan davrning davomiyligi, </Text>
-              <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold' }}>Z</Text>
-              <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold' }}>is.dav</Text>
+              <Text style={pdfStyles.mainVariableText}>Z</Text>
+              <Text style={pdfStyles.subscriptText}>is.dav</Text>
             </View>
             {/*O'NG BLOK*/}
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', flexShrink: 0 }}>
@@ -164,10 +164,10 @@ const HeatPdfDocument = ({ initial, climate, heatingSeason, heatStep, constructi
           {/* Tashqi havoning hisobiy qishki harorati */}
           <View style={pdfStyles.row}>
             {/*CHAP BLOK*/}
-            <View style={{ flexDirection: "row", alignItems: 'baseline', maxWidth: '85%', marginRight: 2, flex: 1, justifyContent: "flex-start" }}>
+            <View style={pdfStyles.labelWithSubscript}>
               <Text style={pdfStyles.labelFix}>Tashqi havoning hisobiy qishki harorati, </Text>
               <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold', }}>t</Text>
-              <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold' }}>t</Text>
+              <Text style={pdfStyles.subscriptText}>t</Text>
             </View>
             {/*O'NG BLOK*/}
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', flexShrink: 0 }}>
@@ -188,15 +188,15 @@ const HeatPdfDocument = ({ initial, climate, heatingSeason, heatStep, constructi
               <View style={pdfStyles.table}>
                 <View style={pdfStyles.tableHeader}>
                   <Text style={[pdfStyles.tableCell, { flex: 0.3 }]}>#</Text>
-                  <Text style={[pdfStyles.tableCell, { flex: 2 }]}>Material</Text>
+                  <Text style={[pdfStyles.tableCell, { flex: 2, fontWeight: 'bold' }]}>Material</Text>
                   <Text style={[pdfStyles.tableCell, { flex: 0.7 }]}>
-                    <Text style={pdfStyles.mathText}>δ</Text>, mm
+                    <Text style={[pdfStyles.mathText, {color: 'black'}]}>δ</Text>, mm
+                  </Text>                                                                                   
+                  <Text style={[pdfStyles.tableCell, { flex: 0.7 }]}>
+                    <Text style={[pdfStyles.mathText, {color: 'black'}]}>γ</Text>, kg/m³
                   </Text>
                   <Text style={[pdfStyles.tableCell, { flex: 0.7 }]}>
-                    <Text style={pdfStyles.mathText}>γₒ</Text>, kg/m³
-                  </Text>
-                  <Text style={[pdfStyles.tableCell, { flex: 0.7 }]}>
-                    <Text style={pdfStyles.mathText}>λ</Text>
+                    <Text style={[pdfStyles.mathText, {color: 'black'}]}>λ</Text>
                   </Text>
                   <Text style={[pdfStyles.tableCell, { flex: 0.7 }]}>R</Text>
                 </View>
@@ -221,11 +221,10 @@ const HeatPdfDocument = ({ initial, climate, heatingSeason, heatStep, constructi
           {/* Delta t_t */}
           <View style={pdfStyles.row}>
             {/*CHAP BLOK*/}
-            <View style={{ flexDirection: "row", alignItems: 'flex-end', maxWidth: '85%', marginRight: 2, flex: 1, justifyContent: "flex-start" }}>
-
+            <View style={pdfStyles.labelWithSubscript}>
               <Text style={pdfStyles.labelFix}>Ichki havo harorati va to'suvchi konstruksiyaning ichki yuzasi harorati o'rtasidagi me'yoriy harorat farqi, </Text>
-              <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold', fontFamily: 'NotoSansMath', lineHeight: 1.25, }}>Δt</Text>
-              <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold', }}>t</Text>
+              <Text style={pdfStyles.mathText}>Δt</Text>
+              <Text style={pdfStyles.subscriptText}>t</Text>
             </View>
             {/*O'NG BLOK*/}
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', flexShrink: 0 }}>
@@ -245,10 +244,10 @@ const HeatPdfDocument = ({ initial, climate, heatingSeason, heatStep, constructi
           {/* Alpha i */}
           <View style={pdfStyles.row}>
             {/*CHAP BLOK*/}
-            <View style={{ flexDirection: "row", alignItems: 'baseline', maxWidth: '80%', marginRight: 2, flex: 1, justifyContent: "flex-start" }}>
+            <View style={pdfStyles.labelWithSubscript}>
               <Text style={pdfStyles.labelFix}>To'suvchi konstruksiyalarning ichki yuzasining issiqlik berish koeffitsienti, </Text>
-              <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold', fontFamily: 'NotoSansMath', lineHeight: 1.25, }}>α</Text>
-              <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold', }}>i</Text>
+              <Text style={pdfStyles.mathText}>α</Text>
+              <Text style={pdfStyles.subscriptText}>i</Text>
             </View>
             {/*O'NG BLOK*/}
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', flexShrink: 0 }}>
@@ -268,10 +267,10 @@ const HeatPdfDocument = ({ initial, climate, heatingSeason, heatStep, constructi
           {/* Alpha t */}
           <View style={pdfStyles.row}>
             {/*CHAP BLOK*/}
-            <View style={{ flexDirection: "row", alignItems: 'flex-end', maxWidth: '85%', marginRight: 2, flex: 1, justifyContent: "flex-start" }}>
+            <View style={pdfStyles.labelWithSubscript}>
               <Text style={pdfStyles.labelFix}>To'suvchi konstruksiyalarning tashqi yuzasining issiqlik berish koeffitsienti, </Text>
-              <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold', fontFamily: 'NotoSansMath', lineHeight: 1.25, }}>α</Text>
-              <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold', }}>t</Text>
+              <Text style={pdfStyles.mathText}>α</Text>
+              <Text style={pdfStyles.subscriptText}>t</Text>
             </View>
             {/*O'NG BLOK*/}
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', flexShrink: 0 }}>
@@ -291,10 +290,10 @@ const HeatPdfDocument = ({ initial, climate, heatingSeason, heatStep, constructi
           {/* D_is_dav */}
           <View style={pdfStyles.row}>
             {/*CHAP BLOK*/}
-            <View style={{ flexDirection: "row", alignItems: 'flex-end', maxWidth: '85%', marginRight: 2, flex: 1, justifyContent: "flex-start" }}>
+            <View style={pdfStyles.labelWithSubscript}>
               <Text style={pdfStyles.labelFix}>Isitish davrining gradus-sutkasi, </Text>
-              <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold' }}>D</Text>
-              <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold' }}>is.dav</Text>
+              <Text style={pdfStyles.mainVariableText}>D</Text>
+              <Text style={pdfStyles.subscriptText}>is.dav</Text>
             </View>
             {/*O'NG BLOK*/}
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', flexShrink: 0 }}>
@@ -321,10 +320,10 @@ const HeatPdfDocument = ({ initial, climate, heatingSeason, heatStep, constructi
           {/*Ro Tal.SG*/}
           <View style={pdfStyles.row}>
             {/*CHAP BLOK*/}
-            <View style={{ flexDirection: "row", alignItems: 'flex-end', maxWidth: '85%', marginRight: 2, flex: 1, justifyContent: "flex-start" }}>
+            <View style={pdfStyles.labelWithSubscript}>
               <Text style={pdfStyles.labelFix}>Sanitariya-gigiena talablariga muvofiq me'yoriy (ruxsat etilgan maksimal) qarshilik, </Text>
-              <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold' }}>R</Text>
-              <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold' }}>o</Text>
+              <Text style={pdfStyles.mainVariableText}>R</Text>
+              <Text style={pdfStyles.subscriptText}>o</Text>
               <Text style={{ fontSize: 5, lineHeight: 2, color: '#1080C2', fontWeight: 'bold' }}>Tal.SG</Text>
             </View>
             {/*O'NG BLOK*/}
@@ -350,13 +349,11 @@ const HeatPdfDocument = ({ initial, climate, heatingSeason, heatStep, constructi
           {/* Ro Talab */}
           <View style={pdfStyles.row}>
             {/*CHAP BLOK*/}
-            <View style={{ flexDirection: "row", alignItems: 'flex-end', maxWidth: '85%', marginRight: 2, flex: 1, justifyContent: "flex-start" }}>
-
+            <View style={pdfStyles.labelWithSubscript}>
               <Text style={pdfStyles.labelFix}>To'suvchi konstruksiyaning talab etilgan issiqlik uzatilishiga keltirilgan qarshiligi, </Text>
-              <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold' }}>R</Text>
-              <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold' }}>o</Text>
+              <Text style={pdfStyles.mainVariableText}>R</Text>
+              <Text style={pdfStyles.subscriptText}>o</Text>
               <Text style={{ fontSize: 5, lineHeight: 2, color: '#1080C2', fontWeight: 'bold' }}>Tal.</Text>
-
             </View>
             {/*O'NG BLOK*/}
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', flexShrink: 0 }}>
@@ -380,10 +377,10 @@ const HeatPdfDocument = ({ initial, climate, heatingSeason, heatStep, constructi
           {/* R_k */}
           <View style={pdfStyles.row}>
             {/*CHAP BLOK*/}
-            <View style={{ flexDirection: "row", alignItems: 'flex-end', maxWidth: '85%', marginRight: 2, flex: 1, justifyContent: "flex-start" }}>
+            <View style={pdfStyles.labelWithSubscript}>
               <Text style={pdfStyles.labelFix}>Ko'p qatlamli to'suvchi konstruksiyaning termik qarshiligi, </Text>
-              <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold' }}>R</Text>
-              <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold' }}>k</Text>
+              <Text style={pdfStyles.mainVariableText}>R</Text>
+              <Text style={pdfStyles.subscriptText}>k</Text>
             </View>
             {/*O'NG BLOK*/}
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', flexShrink: 0 }}>
@@ -408,10 +405,10 @@ const HeatPdfDocument = ({ initial, climate, heatingSeason, heatStep, constructi
           {/* Ro calc */}
           <View style={pdfStyles.row}>
             {/*CHAP BLOK*/}
-            <View style={{ flexDirection: "row", alignItems: 'flex-end', maxWidth: '85%', marginRight: 2, flex: 1, justifyContent: "flex-start" }}>
+            <View style={pdfStyles.labelWithSubscript}>
               <Text style={pdfStyles.labelFix}>To'suvchi konstruksiyalarning issiqlik uzatilishiga keltirilgan qarshiligi, </Text>
-              <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold' }}>R</Text>
-              <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold' }}>o</Text>
+              <Text style={pdfStyles.mainVariableText}>R</Text>
+              <Text style={pdfStyles.subscriptText}>o</Text>
             </View>
             {/*O'NG BLOK*/}
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', flexShrink: 0 }}>

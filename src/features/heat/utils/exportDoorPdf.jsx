@@ -134,14 +134,14 @@ const DoorPdfDocument = ({ initial, climate, heatingSeason, heatStep, RoTalSG })
             <Text style={pdfStyles.value}>{provinceName}, {regionName}</Text>
           </View>
 
-          {/**tt qiymati */}
+          {/**t_ichki qiymati */}
           <View style={pdfStyles.row}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', maxWidth: '75%', marginRight: 2, paddingTop:4, flex: 1 }}>
+            <View style={pdfStyles.labelWithSubscript}>
               <Text style={pdfStyles.labelFix}>Xona ichidagi havo harorati, </Text>
-              <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold' }}>t</Text>
-              <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold' }}>i</Text>
+              <Text style={pdfStyles.mainVariableText}>t</Text>
+              <Text style={pdfStyles.subscriptText}>i</Text>
             </View>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', paddingTop:4 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', }}>
               {safeClimate?.t_in != null ? (
                 <Text style={pdfStyles.value}>{safeClimate.t_in.toFixed(1)} °C</Text>
               ) : (
@@ -152,10 +152,10 @@ const DoorPdfDocument = ({ initial, climate, heatingSeason, heatStep, RoTalSG })
 
           {/**NISBIY NAMLIK */}
           <View style={pdfStyles.row}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', maxWidth: '75%', marginRight: 2, flex: 1 }}>
+            <View style={pdfStyles.labelWithSubscript}>
               <Text style={pdfStyles.labelFix}>Ichki havo nisbiy namligi, </Text>
-              <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold', fontFamily: fontRegistered ? 'NotoSansMath' : undefined }}>φ</Text>
-              <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold' }}>i</Text>
+              <Text style={pdfStyles.mathText}>φ</Text>
+              <Text style={pdfStyles.subscriptText}>i</Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
               {safeClimate?.phi_in != null && !isNaN(safeClimate.phi_in) ? (
@@ -173,10 +173,10 @@ const DoorPdfDocument = ({ initial, climate, heatingSeason, heatStep, RoTalSG })
           {/**tISDAVR qiymati */}
 
           <View style={pdfStyles.row}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', maxWidth: '75%', marginRight: 2, flex: 1 }}>
+            <View style={pdfStyles.labelWithSubscript}>
               <Text style={pdfStyles.labelFix}>Isitish davrining o'rtacha harorati, </Text>
-              <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold' }}>t</Text>
-              <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold' }}>is.dav</Text>
+              <Text style={pdfStyles.mainVariableText}>t</Text>
+              <Text style={pdfStyles.subscriptText}>is.dav</Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
               {safeHeatingSeason?.t_is_dav != null && !isNaN(safeHeatingSeason.t_is_dav) ? (
@@ -191,10 +191,10 @@ const DoorPdfDocument = ({ initial, climate, heatingSeason, heatStep, RoTalSG })
           )}
           {/**zISDAV qiymati */}
           <View style={pdfStyles.row}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', maxWidth: '75%', marginRight: 2, flex: 1 }}>
+            <View style={pdfStyles.labelWithSubscript}>
               <Text style={pdfStyles.labelFix}>Isitish davrining davomiyligi, </Text>
-              <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold'}}>Z</Text>
-              <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold' }}>is.dav</Text>
+              <Text style={pdfStyles.mainVariableText}>Z</Text>
+              <Text style={pdfStyles.subscriptText}>is.dav</Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
               {safeHeatingSeason?.Z_is_dav != null && !isNaN(safeHeatingSeason.Z_is_dav) ? (
@@ -208,12 +208,12 @@ const DoorPdfDocument = ({ initial, climate, heatingSeason, heatStep, RoTalSG })
             <Text style={pdfStyles.note}>Isitish davrining davomiyligi Z_is.dav = {safeHeatingSeason.Z_is_dav.toFixed(0)} kun</Text>
           )}
 
-        {/**Tashqi havo hisobiy harorati */}
+          {/**Tashqi havo hisobiy harorati */}
           <View style={pdfStyles.row}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', maxWidth: '75%', marginRight: 2, flex: 1 }}>
+            <View style={pdfStyles.labelWithSubscript}>
               <Text style={pdfStyles.labelFix}>Tashqi havo hisobiy harorati, </Text>
-              <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold'}}>t</Text>
-              <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold' }}>t</Text>
+              <Text style={pdfStyles.mainVariableText}>t</Text>
+              <Text style={pdfStyles.subscriptText}>t</Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
               {safeClimate?.t_out != null && !isNaN(safeClimate.t_out) ? (
@@ -235,15 +235,15 @@ const DoorPdfDocument = ({ initial, climate, heatingSeason, heatStep, RoTalSG })
               <View style={pdfStyles.table}>
                 <View style={pdfStyles.tableHeader}>
                   <Text style={[pdfStyles.tableCell, { flex: 0.3 }]}>#</Text>
-                  <Text style={[pdfStyles.tableCell, { flex: 2 }]}>Material</Text>
+                  <Text style={[pdfStyles.tableCell, { flex: 2, fontWeight: 'bold' }]}>Material</Text>
                   <Text style={[pdfStyles.tableCell, { flex: 0.7 }]}>
-                    <Text style={pdfStyles.mathText}>δ</Text>, mm
+                    <Text style={[pdfStyles.mathText, { color: 'black' }]}>δ</Text>, mm
                   </Text>
                   <Text style={[pdfStyles.tableCell, { flex: 0.7 }]}>
-                    <Text style={pdfStyles.mathText}>γₒ</Text>, kg/m³
+                    <Text style={[pdfStyles.mathText, { color: 'black' }]}>γ</Text>, kg/m³
                   </Text>
                   <Text style={[pdfStyles.tableCell, { flex: 0.7 }]}>
-                    <Text style={pdfStyles.mathText}>λ</Text>
+                    <Text style={[pdfStyles.mathText, { color: 'black' }]}>λ</Text>
                   </Text>
                   <Text style={[pdfStyles.tableCell, { flex: 0.7 }]}>R</Text>
                 </View>
@@ -267,15 +267,13 @@ const DoorPdfDocument = ({ initial, climate, heatingSeason, heatStep, RoTalSG })
 
           {/* RoTalSG - Sanitariya-gigena talablariga ko'ra qarshilik */}
           <View style={pdfStyles.row}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', maxWidth: '75%', marginRight: 2, flex: 1, marginTop: 3 }}>
-              <Text style={pdfStyles.labelFix}>
-                Sanitariya-gigena talablariga ko'ra issiqlik uzatilishiga qarshilik,
-              </Text>
-              <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold' }}>R</Text>
-              <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold' }}>o</Text>
+            <View style={pdfStyles.labelWithSubscript}>
+              <Text style={pdfStyles.labelFix}>Sanitariya-gigena talablariga ko'ra issiqlik uzatilishiga qarshilik, </Text>
+              <Text style={pdfStyles.mainVariableText}>R</Text>
+              <Text style={pdfStyles.subscriptText}>o</Text>
               <Text style={{ fontSize: 5, lineHeight: 2, color: '#1080C2', fontWeight: 'bold' }}>Tal.SG</Text>
             </View>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginTop: 3 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', }}>
               <Text style={pdfStyles.value}>{roTalSGValue != null ? roTalSGValue.toFixed(2) : "—"} m²·°C/Vt</Text>
             </View>
           </View>
@@ -286,15 +284,13 @@ const DoorPdfDocument = ({ initial, climate, heatingSeason, heatStep, RoTalSG })
           {/* RoTalED */}
           {RoTalED != null && (
             <View style={pdfStyles.row}>
-              <View style={{ flexDirection: 'row', alignItems: 'flex-end', maxWidth: '75%', marginRight: 2, flex: 1, marginTop: 3 }}>
-                <Text style={pdfStyles.labelFix}>
-                  Eshik va darvozalar issiqlik uzatilishiga talab etilgan qarshiligi,
-                </Text>
-                <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold' }}>R</Text>
-                <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold' }}>o</Text>
+              <View style={pdfStyles.labelWithSubscript}>
+                <Text style={pdfStyles.labelFix}>Eshik va darvozalar issiqlik uzatilishiga talab etilgan qarshiligi, </Text>
+                <Text style={pdfStyles.mainVariableText}>R</Text>
+                <Text style={pdfStyles.subscriptText}>o</Text>
                 <Text style={{ fontSize: 5, lineHeight: 2, color: '#1080C2', fontWeight: 'bold' }}>Tal.E.D</Text>
               </View>
-              <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginTop: 3 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', }}>
                 <Text style={pdfStyles.value}>{RoTalED.toFixed(2)} m²·°C/Vt</Text>
               </View>
             </View>
@@ -305,10 +301,10 @@ const DoorPdfDocument = ({ initial, climate, heatingSeason, heatStep, RoTalSG })
 
           {/* R_k */}
           <View style={pdfStyles.row}>
-            <View style={{ flexDirection: "row", alignItems: 'flex-end', maxWidth: '85%', marginRight: 2, flex: 1, justifyContent: "flex-start" }}>
+            <View style={pdfStyles.labelWithSubscript}>
               <Text style={pdfStyles.labelFix}>Ko'p qatlamli to'suvchi konstruksiyaning termik qarshiligi, </Text>
-              <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold' }}>R</Text>
-              <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold' }}>k</Text>
+              <Text style={pdfStyles.mainVariableText}>R</Text>
+              <Text style={pdfStyles.subscriptText}>k</Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', flexShrink: 0 }}>
               {Rk != null ? (
@@ -329,10 +325,10 @@ const DoorPdfDocument = ({ initial, climate, heatingSeason, heatStep, RoTalSG })
 
           {/* Ro calc */}
           <View style={pdfStyles.row}>
-            <View style={{ flexDirection: "row", alignItems: 'flex-end', maxWidth: '85%', marginRight: 2, flex: 1, justifyContent: "flex-start" }}>
+            <View style={pdfStyles.labelWithSubscript}>
               <Text style={pdfStyles.labelFix}>To'suvchi konstruksiyalarning issiqlik uzatilishiga keltirilgan qarshiligi, </Text>
-              <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold' }}>R</Text>
-              <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold' }}>o</Text>
+              <Text style={pdfStyles.mainVariableText}>R</Text>
+              <Text style={pdfStyles.subscriptText}>o</Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', flexShrink: 0 }}>
               {doorRo != null ? (
@@ -356,9 +352,7 @@ const DoorPdfDocument = ({ initial, climate, heatingSeason, heatStep, RoTalSG })
                 Eshik va darvoza issiqlik uzatilishiga keltirilgan qarshiligi
               </Text>
               <Text style={pdfStyles.conclusionText}>
-                ( R<Text style={{ fontSize: 8 }}>o</Text> = {doorRo.toFixed(2)} m²·°C/Vt) talab etilganidan
-           
-                ( R<Text style={{ fontSize: 8 }}>o</Text><Text style={{ fontSize: 7, lineHeight: 2 }}>Tal.</Text> = {RoTalED.toFixed(2)} m²·°C/Vt) {isSatisfied ? 'katta.' : 'kichik.'}
+                ( R<Text style={{ fontSize: 8 }}>o</Text> = {doorRo.toFixed(2)} m²·°C/Vt) talab etilganidan ( R<Text style={{ fontSize: 8 }}>o</Text><Text style={{ fontSize: 7, lineHeight: 2 }}>Tal.</Text> = {RoTalED.toFixed(2)} m²·°C/Vt) {isSatisfied ? 'katta.' : 'kichik.'}
               </Text>
               <Text style={[pdfStyles.conclusionResult, isSatisfied ? pdfStyles.successText : pdfStyles.errorText]}>
                 {isSatisfied ? 'Issiqlik himoyasi talabiga muvofiq keladi!' : 'Issiqlik himoyasi talabiga muvofiq kelmaydi!'}

@@ -103,10 +103,10 @@ const WindowPdfDocument = ({ initial, climate, heatingSeason, heatStep }) => {
           </View>
 
           <View style={pdfStyles.row}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', maxWidth: '75%', marginRight: 2, flex: 1 }}>
+            <View style={pdfStyles.labelWithSubscript}>
               <Text style={pdfStyles.labelFix}>Xona ichidagi havo harorati, </Text>
-              <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold', fontFamily: 'NotoSansMath' }}>t</Text>
-              <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold' }}>i</Text>
+              <Text style={pdfStyles.mainVariableText}>t</Text>
+              <Text style={pdfStyles.subscriptText}>i</Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
               {climate?.t_in != null ? (
@@ -121,10 +121,10 @@ const WindowPdfDocument = ({ initial, climate, heatingSeason, heatStep }) => {
           )}
 
           <View style={pdfStyles.row}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', maxWidth: '75%', marginRight: 2, flex: 1 }}>
+            <View style={pdfStyles.labelWithSubscript}>
               <Text style={pdfStyles.labelFix}>Isitish davrining o'rtacha harorati, </Text>
-              <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold', fontFamily: 'NotoSansMath' }}>t</Text>
-              <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold' }}>is.dav</Text>
+              <Text style={pdfStyles.mainVariableText}>t</Text>
+              <Text style={pdfStyles.subscriptText}>is.dav</Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
               {heatingSeason?.t_is_dav != null ? (
@@ -139,10 +139,10 @@ const WindowPdfDocument = ({ initial, climate, heatingSeason, heatStep }) => {
           )}
 
           <View style={pdfStyles.row}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', maxWidth: '75%', marginRight: 2, flex: 1 }}>
+            <View style={pdfStyles.labelWithSubscript}>
               <Text style={pdfStyles.labelFix}>Isitish davrining davomiyligi, </Text>
-              <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold', fontFamily: 'NotoSansMath' }}>Z</Text>
-              <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold' }}>is.dav</Text>
+              <Text style={pdfStyles.mainVariableText}>Z</Text>
+              <Text style={pdfStyles.subscriptText}>is.dav</Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
               {heatingSeason?.Z_is_dav != null ? (
@@ -157,10 +157,10 @@ const WindowPdfDocument = ({ initial, climate, heatingSeason, heatStep }) => {
           )}
 
           <View style={pdfStyles.row}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', maxWidth: '75%', marginRight: 2, flex: 1 }}>
+            <View style={pdfStyles.labelWithSubscript}>
               <Text style={pdfStyles.labelFix}>Tashqi havo hisobiy harorati, </Text>
-              <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold', fontFamily: 'NotoSansMath' }}>t</Text>
-              <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold' }}>t</Text>
+              <Text style={pdfStyles.mainVariableText}>t</Text>
+              <Text style={pdfStyles.subscriptText}>t</Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
               {climate?.t_out != null ? (
@@ -178,18 +178,18 @@ const WindowPdfDocument = ({ initial, climate, heatingSeason, heatStep }) => {
           {derazaType && RoTalDF != null && (
             <View style={pdfStyles.row}>
               {/*CHAP BLOK*/}
-              <View style={{ flexDirection: 'row', alignItems: 'flex-end', maxWidth: '75%', marginRight: 2, flex: 1, marginTop: 3 }}>
+              <View style={pdfStyles.labelWithSubscript}>
                 <Text style={pdfStyles.labelFix}>
                   {derazaType === 'fonarlar'
                     ? "Fonarlarning talab etilgan issiqlik uzatilishiga qarshiligi, "
                     : "Deraza va balkon eshiklarining talab etilgan issiqlik uzatilishiga qarshiligi, "}
                 </Text>
-                <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold' }}>R</Text>
-                <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold' }}>o</Text>
+                <Text style={pdfStyles.mainVariableText}>R</Text>
+                <Text style={pdfStyles.subscriptText}>o</Text>
                 <Text style={{ fontSize: 5, lineHeight: 2, color: '#1080C2', fontWeight: 'bold' }}>Tal.D.F.</Text>
               </View>
               {/*O'NG BLOK*/}
-              <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginTop: 3 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start',  }}>
                 <Text style={pdfStyles.value}>{RoTalDF.toFixed(2)} m²·°C/Vt</Text>
               </View>
             </View>
@@ -212,7 +212,7 @@ const WindowPdfDocument = ({ initial, climate, heatingSeason, heatStep }) => {
               {windowRo != null ? (
                 <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
                   <Text style={pdfStyles.value}>R</Text>
-                  <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold' }}>o</Text>
+                  <Text style={pdfStyles.subscriptText}>o</Text>
                   <Text style={pdfStyles.value}> = {windowRo.toFixed(2)} m²·°C/Vt</Text>
                 </View>
               ) : (
@@ -228,7 +228,7 @@ const WindowPdfDocument = ({ initial, climate, heatingSeason, heatStep }) => {
               {windowRo2 != null ? (
                 <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
                   <Text style={pdfStyles.value}>R</Text>
-                  <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold' }}>o</Text>
+                  <Text style={pdfStyles.subscriptText}>o</Text>
                   <Text style={pdfStyles.value}> = {windowRo2.toFixed(2)} m²·°C/Vt</Text>
                 </View>
               ) : (
@@ -247,12 +247,12 @@ const WindowPdfDocument = ({ initial, climate, heatingSeason, heatStep }) => {
                   ? (
                     <View style={pdfStyles.conclusion} wrap={false} break>
                       <Text style={pdfStyles.conclusionText}>Shart {acceptedVariant.number}-variant uchun bajarilmoqda: </Text>
-                      <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold' }}>R</Text>
-                      <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold' }}>o</Text>
+                      <Text style={pdfStyles.mainVariableText}>R</Text>
+                      <Text style={pdfStyles.subscriptText}>o</Text>
                       <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold' }}> = {acceptedVariant.Ro.toFixed(2)} m²·°C/Vt </Text>
                       <Text style={{ fontSize: 10, marginBottom: 5, textAlign: 'center', fontFamily: 'NotoSansMath' }}> ≥ </Text>
                       <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold', paddingLeft: 2 }}> R</Text>
-                      <Text style={{ fontSize: 6, lineHeight: 1, color: '#1080C2', fontWeight: 'bold' }}>o</Text>
+                      <Text style={pdfStyles.subscriptText}>o</Text>
                       <Text style={{ fontSize: 5, lineHeight: 3, color: '#1080C2', fontWeight: 'bold' }}>Tal.D.F.</Text>
                       <Text style={{ fontSize: 9, color: '#1080C2', fontWeight: 'bold' }}> = {RoTalDF.toFixed(2)} m²·°C/Vt </Text>
                     </View>

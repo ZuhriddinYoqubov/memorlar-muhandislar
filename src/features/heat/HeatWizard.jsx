@@ -12,6 +12,7 @@ import { DerazaBalkonStep } from "./controls/DerazaBalkonStep";
 import { EnclosureStep } from "./controls/EnclosureStep";
 import { InitialDataBlock } from "./controls/InitialDataBlock";
 import { NormativeQStep } from "./controls/NormativeQStep";
+import { BuildingParametersStep } from "./controls/BuildingParametersStep";
 import { WizardPrimaryButton, WizardSecondaryButton } from "./controls/WizardButtons";
 import {
   exportHeatPdf,
@@ -44,6 +45,12 @@ const STEPS = [
     title: "Dastlabki ma'lumotlar",
     description:
       "Obekt, hudud, issiqlik himoyasi darajasi va boshqa boshlang'ich parametrlarni kiriting.",
+  },
+  {
+    id: "building_parameters",
+    title: "Bino parametrlari",
+    description:
+      "Bino geometriyasi va konstruksiyalari maydonlari ma'lumotlarini kiriting.",
   },
   {
     id: "heat_calc_1",
@@ -99,35 +106,38 @@ export default function HeatWizard() {
   const [heatSteps, setHeatSteps] = useState([]);
 
   // UI da ko'rsatiladigan barcha steplar:
-  // - Agar hali birorta issiqlik hisobi tanlanmagan bo'lsa: 1, 2 (placeholder), 3
-  // - Agar faqat bitta issiqlik hisobi bo'lsa: 1, 2, 3
-  // - Agar bir nechta bo'lsa: 1, 2.1, 2.2, ..., 3
+  // - Agar hali birorta issiqlik hisobi tanlanmagan bo'lsa: 1, 2, 3 (placeholder), 4
+  // - Agar faqat bitta issiqlik hisobi bo'lsa: 1, 2, 3, 4
+  // - Agar bir nechta bo'lsa: 1, 2, 3.1, 3.2, ..., 4
   const displaySteps = useMemo(() => {
     if (heatSteps.length === 0) {
       return [
         { kind: "logical", id: "initial", label: "1" },
-        { kind: "logical", id: "heat_placeholder", label: "2" },
-        { kind: "logical", id: "normative_q", label: "3" },
+        { kind: "logical", id: "building_parameters", label: "2" },
+        { kind: "logical", id: "heat_placeholder", label: "3" },
+        { kind: "logical", id: "normative_q", label: "4" },
       ];
     }
 
     if (heatSteps.length === 1) {
-      // Faqat bitta issiqlik stepi bo'lsa, u umumiy 2-step sifatida ko'rinadi
+      // Faqat bitta issiqlik stepi bo'lsa, u umumiy 3-step sifatida ko'rinadi
       return [
         { kind: "logical", id: "initial", label: "1" },
-        { ...heatSteps[0], label: "2" },
-        { kind: "logical", id: "normative_q", label: "3" },
+        { kind: "logical", id: "building_parameters", label: "2" },
+        { ...heatSteps[0], label: "3" },
+        { kind: "logical", id: "normative_q", label: "4" },
       ];
     }
 
-    // Ikki va undan ko'p issiqlik steplari bo'lsa, 2.1, 2.2, ... sifatida nomlanadi
+    // Ikki va undan ko'p issiqlik steplari bo'lsa, 3.1, 3.2, ... sifatida nomlanadi
     return [
       { kind: "logical", id: "initial", label: "1" },
+      { kind: "logical", id: "building_parameters", label: "2" },
       ...heatSteps.map((step, idx) => ({
         ...step,
-        label: `2.${idx + 1}`,
+        label: `3.${idx + 1}`,
       })),
-      { kind: "logical", id: "normative_q", label: "3" },
+      { kind: "logical", id: "normative_q", label: "4" },
     ];
   }, [heatSteps]);
 
@@ -868,6 +878,11 @@ export default function HeatWizard() {
       return !!currentConstructionType;
     }
 
+    if (stepId === "building_parameters") {
+      // Bino parametrlari bosqichi – hozircha har doim bajarilgan hisoblanadi
+      return true;
+    }
+
     if (stepId === "normative_q") {
       // Me'yoriy issiqlik sarfi bosqichi – hozircha issiqlik hisobiga kirilgan bo'lsa yetarli
       return !!hasHeatCalcVisited;
@@ -1206,13 +1221,19 @@ export default function HeatWizard() {
       return;
     }
 
-    // 3-bosqich (normativ)
+    // 2-bosqich (bino parametrlari)
+    if (currentStepId === "building_parameters") {
+      exportNormativeStepPdf({ initial });
+      return;
+    }
+
+    // 4-bosqich (normativ)
     if (currentStepId === "normative_q") {
       exportNormativeStepPdf({ initial });
       return;
     }
 
-    // 2-bosqich (issiqlik texnik hisoblar)
+    // 3-bosqich (issiqlik texnik hisoblar)
     const isHeatCalcStep = currentStepId === "heat_calc_1" || currentDisplayStep?.kind === "heat";
     if (isHeatCalcStep) {
       // Avval hozirgi state ni saqlash
@@ -1763,13 +1784,23 @@ export default function HeatWizard() {
             </div>
           )}
 
+          {currentStepId === "building_parameters" && (
+            <BuildingParametersStep 
+              objectName={initial.objectName}
+              climate={climate}
+              heatingSeason={heatingSeason}
+              layers={layers}
+              onExportPDF={handleExportCurrentStepPdf}
+            />
+          )}
+
           {currentStepId === "normative_q" && (
             <NormativeQStep 
               objectName={initial.objectName}
               climate={climate}
               heatingSeason={heatingSeason}
               layers={layers}
-              onExportPDF={handleExportPDF}
+              onExportPDF={handleExportCurrentStepPdf}
             />
           )}
 
@@ -1818,6 +1849,7 @@ export default function HeatWizard() {
               setSelectedWindowGroup2={setSelectedWindowGroup2}
               selectedWindowVariant2={selectedWindowVariant2}
               setSelectedWindowVariant2={setSelectedWindowVariant2}
+              currentDisplayStep={currentDisplayStep}
             />
           )}
 

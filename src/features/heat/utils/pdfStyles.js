@@ -80,7 +80,7 @@ export const pdfStyles = StyleSheet.create({
     flexDirection: 'row',
     borderBottomWidth: 0.5,
     borderBottomColor: '#E8E8E8',
-    paddingTop: 1,
+    paddingTop: 3,
     paddingBottom: 2,
     marginLeft: 10,
     marginRight: 10,
@@ -174,11 +174,36 @@ export const pdfStyles = StyleSheet.create({
   tableCell: {
     flex: 1,
     textAlign: 'center',
+    fontWeight: 'normal',
   },
   mathText: {
+    fontSize: 9,
+    color: '#1080C2',
+    fontWeight: 'bold',
     fontFamily: 'NotoSansMath',
+    lineHeight: 1.25,
+  },
+  mainVariableText: {
+    fontSize: 9,
+    color: '#1080C2',
+    fontWeight: 'bold',
   },
   unicodeText: {
     fontFamily: 'NotoSansMath',
+  },
+  labelWithSubscript: {
+    flexDirection: "row",
+    alignItems: 'baseline',
+    maxWidth: '85%',
+    marginRight: 2,
+    flex: 1,
+    justifyContent: "flex-start",
+  },
+
+  subscriptText: {
+    fontSize: 6,
+    lineHeight: 1,
+    color: '#1080C2',
+    fontWeight: 'bold',
   },
 });

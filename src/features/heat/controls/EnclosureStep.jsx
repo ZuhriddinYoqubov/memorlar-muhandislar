@@ -53,13 +53,17 @@ export function EnclosureStep({
   setSelectedWindowGroup2,
   selectedWindowVariant2,
   setSelectedWindowVariant2,
+  currentDisplayStep,
 }) {
   const [showInitial, setShowInitial] = useState(false);
   const [showNormative, setShowNormative] = useState(false);
 
+  // Hozirgi konstruksiya turini aniqlash (preset yoki tanlangan)
+  const currentConstructionType = currentDisplayStep?.presetConstructionType || constructionType;
+
   return (
     <div className="space-y-6 text-sm text-gray-700">
-      {constructionType === "eshik_darvoza" && (
+      {currentConstructionType === "eshik_darvoza" && (
         <EshikDarvozaStep
           hududLabel={hududLabel}
           climate={climate}
@@ -84,7 +88,7 @@ export function EnclosureStep({
         />
       )}
 
-      {constructionType === "deraza_balkon_eshiklari" && (
+      {currentConstructionType === "deraza_balkon_eshiklari" && (
         <DerazaBalkonStep
           hududLabel={hududLabel}
           climate={climate}
@@ -121,7 +125,7 @@ export function EnclosureStep({
         />
       )}
 
-      {constructionType !== "eshik_darvoza" && constructionType !== "deraza_balkon_eshiklari" && (
+      {currentConstructionType !== "eshik_darvoza" && currentConstructionType !== "deraza_balkon_eshiklari" && (
         <>
           <InitialDataBlock
             hududLabel={hududLabel}
@@ -148,9 +152,9 @@ export function EnclosureStep({
                 />
               </div>
 
-              {constructionType &&
-                constructionType !== "tashqi_devor" &&
-                constructionType !== "tashqi_devor_ventfasad" && (
+              {currentConstructionType &&
+                currentConstructionType !== "tashqi_devor" &&
+                currentConstructionType !== "tashqi_devor_ventfasad" && (
                   <div className="w-full md:basis-1/3">
                     <label className="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
                       <span>Qovurg'a balandligi nisbati, h/a</span>
@@ -208,9 +212,9 @@ export function EnclosureStep({
       <RibHeightInfoModal open={showRibInfo} onClose={() => setShowRibInfo(false)} />
 
       {/* Material blokidan keyin ko'rsatkichlar paneli (faqat deraza/balkon eshiklari bo'lmaganda) */}
-      {constructionType &&
-        constructionType !== "eshik_darvoza" &&
-        constructionType !== "deraza_balkon_eshiklari" && (
+      {currentConstructionType &&
+        currentConstructionType !== "eshik_darvoza" &&
+        currentConstructionType !== "deraza_balkon_eshiklari" && (
           <>
             <div className="border-t border-dashed border-gray-200 mt-6 mb-4" />
 
@@ -243,7 +247,7 @@ export function EnclosureStep({
                   Rk={Rk}
                   Ro_calc={Ro_calc}
                   initial={initial}
-                  constructionType={constructionType}
+                  constructionType={currentConstructionType}
                   climate={climate}
                   layers={layers}
                   ribHeightRatio={ribHeightRatio}
