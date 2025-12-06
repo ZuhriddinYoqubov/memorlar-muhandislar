@@ -134,6 +134,8 @@ export function getHumidityRegime(t_in, phi_in) {
  * @returns {object} - Rejim nomi, harorat diapazoni va namlik chegaralari
  */
 export function getHumidityRegimeInfo(t_in, phi_in) {
+  if (t_in == null || phi_in == null) return null;
+  
   const regime = getHumidityRegime(t_in, phi_in);
   
   // Harorat diapazonini aniqlash

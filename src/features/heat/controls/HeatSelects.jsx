@@ -4,7 +4,7 @@ import { REGIONS } from "../data/regions";
 import { WINDOWS } from "../data/windowsRo";
 
 // Umumiy select komponenti (HeatWizard va boshqa issiqlik modullari uchun)
-export function CustomSelect({ value, onChange, options, placeholder = "Tanlang", error = false }) {
+export function CustomSelect({ value, onChange, options = [], placeholder = "Tanlang", error = false }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const [menuStyle, setMenuStyle] = useState({ left: 0, top: 0, width: 0 });
@@ -40,7 +40,7 @@ export function CustomSelect({ value, onChange, options, placeholder = "Tanlang"
     };
   }, [open]);
 
-  const selectedLabel = options.find((o) => o.value === value)?.label || "";
+  const selectedLabel = options?.find((o) => o.value === value)?.label || "";
 
   return (
     <div ref={ref} className="relative">
@@ -81,7 +81,7 @@ export function CustomSelect({ value, onChange, options, placeholder = "Tanlang"
                     {placeholder}
                   </button>
                 </li>
-                {options.map((o) => (
+                {options?.map((o) => (
                   <li key={o.value}>
                     <button
                       type="button"

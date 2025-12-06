@@ -1,5 +1,5 @@
 // Bino parametrlari bosqichi
-import React, { useState, useMemo } from "react";
+import React, { useMemo } from "react";
 import { BuildingParameterInput } from "./BuildingParameterInput";
 import { FieldHelp } from "./FieldHelp";
 import { CustomSelect } from "./HeatSelects";
@@ -36,31 +36,35 @@ export function BuildingParametersStep({
     climate,
     heatingSeason,
     layers,
-    onExportPDF
+    onExportPDF,
+    buildingParams = {},
+    setBuildingParams,
+    clearTempDefaults
 }) {
-    // Dastlabki ma'lumotlar - bino geometriyasi
-    const [objectType, setObjectType] = useState(""); // Obekt toifasi
-    const [P_m, setP_m] = useState(""); // Bino perimetri, m
-    const [H_m, setH_m] = useState(""); // Balandligi, m
-    const [floors, setFloors] = useState(""); // Qavatlilik
-    const [A_f, setA_f] = useState(""); // Bino umumiy maydoni, m²
-    const [A_mc1, setA_mc1] = useState(""); // Xonalar va oshxonalar jami maydoni / Orgtexnikali xonalarning jami maydoni, m²
-    const [V_h, setV_h] = useState(""); // Binoning isitiladigan hajmi, V_h, m³
-    const [weeklyHours, setWeeklyHours] = useState(""); // Jamoat binosi ish soatlarining bir haftalik hisobiy soni
+    // State'larni propsdan olish
+    const objectType = buildingParams.objectType || "";
+    const P_m = buildingParams.P_m || "";
+    const H_m = buildingParams.H_m || "";
+    const floors = buildingParams.floors || "";
+    const A_f = buildingParams.A_f || "";
+    const A_mc1 = buildingParams.A_mc1 || "";
+    const V_h = buildingParams.V_h || "";
+    const weeklyHours = buildingParams.weeklyHours || "";
+    const Xodim = buildingParams.Xodim || "";
+    const roofType = buildingParams.roofType || "";
+    const A_W = buildingParams.A_W || "";
+    const A_L = buildingParams.A_L || "";
+    const A_D = buildingParams.A_D || "";
+    const A_CG = buildingParams.A_CG || "";
+    const A_G = buildingParams.A_G || "";
+    const A_R = buildingParams.A_R || "";
 
-    // Boshqa parametrlar
-    const [Xodim, setXodim] = useState(""); // Bino hisobiy quvvati, kishi
-
-    // Tomyopma turi
-    const [roofType, setRoofType] = useState(""); // Tomyopma turi
-
-    // Bino to'suvchi konstruksiyalari orqali me'yoriy issiqlik yo'qotishlarini aniqlash hisobi
-    const [A_W, setA_W] = useState(""); // Tashqi devorlarning maydoni, A_Fas, m²
-    const [A_L, setA_L] = useState(""); // Derazalar va vitrinalar maydoni, m²
-    const [A_D, setA_D] = useState(""); // Eshiklar maydoni, m²
-    const [A_CG, setA_CG] = useState(""); // Yerdagi pol hamda yer sathidan pastdagi devorlar maydoni, A_CG, m²
-    const [A_G, setA_G] = useState(""); // Isitilmaydigan yerto'la ustidagi pol maydoni, A_G, m²
-    const [A_R, setA_R] = useState(""); // Tomyopmalar (yoki chordoq orayopmalari)ning jami maydoni, A_R, m²
+    // State update funksiyalari
+    const updateBuildingParam = (field, value) => {
+        if (setBuildingParams) {
+            setBuildingParams(prev => ({ ...prev, [field]: value }));
+        }
+    };
 
     // Tashqi devorlarning maydoni (deraza va tashqi eshiklar maydonini hisobga olmaganda)
     const A_W_net = useMemo(() => {
@@ -101,6 +105,19 @@ export function BuildingParametersStep({
 
     return (
         <div className="space-y-6">
+            {/* Vaqtinchalik defaultlarni tozalash tugmasi */}
+            {clearTempDefaults && (
+                <div className="flex justify-end">
+                    <button
+                        onClick={clearTempDefaults}
+                        className="text-xs text-gray-500 hover:text-red-600 transition-colors underline"
+                        title="Vaqtinchalik defaultlarni tozalash"
+                    >
+                        Vaqtinchalik defaultlarni tozalash
+                    </button>
+                </div>
+            )}
+
             {/* Obekt toifasi */}
             <section className="space-y-4">
                 <h2 className="text-base font-semibold text-gray-900">Obekt toifasi</h2>
@@ -109,7 +126,7 @@ export function BuildingParametersStep({
                     <div className="p-4">
                         <CustomSelect
                             value={objectType}
-                            onChange={setObjectType}
+                            onChange={(value) => updateBuildingParam('objectType', value)}
                             options={OBJECT_TYPES}
                             placeholder="Obekt toifasini tanlang"
                         />
@@ -134,7 +151,7 @@ export function BuildingParametersStep({
                             <BuildingParameterInput
                                 label="Bino perimetri, P"
                                 value={P_m}
-                                onChange={(e) => setP_m(validateFloat(e.target.value))}
+                                onChange={(e) => updateBuildingParam('P_m', validateFloat(e.target.value))}
                                 unit="m"
                             />
                             
@@ -142,7 +159,7 @@ export function BuildingParametersStep({
                             <BuildingParameterInput
                                 label="Balandligi, H"
                                 value={H_m}
-                                onChange={(e) => setH_m(validateFloat(e.target.value))}
+                                onChange={(e) => updateBuildingParam('H_m', validateFloat(e.target.value))}
                                 unit="m"
                             />
                             
@@ -150,7 +167,7 @@ export function BuildingParametersStep({
                             <BuildingParameterInput
                                 label="Qavatlilik"
                                 value={floors}
-                                onChange={(e) => setFloors(validateInt(e.target.value))}
+                                onChange={(e) => updateBuildingParam('floors', validateInt(e.target.value))}
                                 unit="qavat"
                                 inputMode="numeric"
                             />
@@ -160,7 +177,7 @@ export function BuildingParametersStep({
                                 label="Bino umumiy maydoni, A"
                                 subscript="f"
                                 value={A_f}
-                                onChange={(e) => setA_f(validateFloat(e.target.value))}
+                                onChange={(e) => updateBuildingParam('A_f', validateFloat(e.target.value))}
                                 unit="m²"
                             />
 
@@ -170,7 +187,7 @@ export function BuildingParametersStep({
                                     label={isResidential ? "Xonalar va oshxonalar jami maydoni, A" : "Orgtexnikali xonalarning jami maydoni, A"}
                                     subscript="mc.1"
                                     value={A_mc1}
-                                    onChange={(e) => setA_mc1(validateFloat(e.target.value))}
+                                    onChange={(e) => updateBuildingParam('A_mc1', validateFloat(e.target.value))}
                                     unit="m²"
                                 />
                             )}
@@ -180,7 +197,7 @@ export function BuildingParametersStep({
                                 <BuildingParameterInput
                                     label="Jamoat binosi ish soatlarining bir haftalik hisobiy soni"
                                     value={weeklyHours}
-                                    onChange={(e) => setWeeklyHours(validateInt(e.target.value))}
+                                    onChange={(e) => updateBuildingParam('weeklyHours', validateInt(e.target.value))}
                                     unit="s/h"
                                     inputMode="numeric"
                                 />
@@ -190,7 +207,7 @@ export function BuildingParametersStep({
                             <BuildingParameterInput
                                 label="Binoning hisobiy quvvati"
                                 value={Xodim}
-                                onChange={(e) => setXodim(validateInt(e.target.value))}
+                                onChange={(e) => updateBuildingParam('Xodim', validateInt(e.target.value))}
                                 unit="kishi"
                                 placeholder="0"
                                 inputMode="numeric"
@@ -205,7 +222,7 @@ export function BuildingParametersStep({
                                     <div className="w-[60%] ml-auto">
                                         <CustomSelect
                                             value={roofType}
-                                            onChange={setRoofType}
+                                            onChange={(value) => updateBuildingParam('roofType', value)}
                                             options={ROOF_TYPES}
                                             placeholder="Tanlang"
                                         />
@@ -218,7 +235,7 @@ export function BuildingParametersStep({
                                 label="Fasad maydoni, A"
                                 subscript="Fas"
                                 value={A_W}
-                                onChange={(e) => setA_W(validateFloat(e.target.value))}
+                                onChange={(e) => updateBuildingParam('A_W', validateFloat(e.target.value))}
                                 unit="m²"
                             />
 
@@ -236,7 +253,7 @@ export function BuildingParametersStep({
                                 label="Derazalar va vitrinalar maydoni, A"
                                 subscript="L"
                                 value={A_L}
-                                onChange={(e) => setA_L(validateFloat(e.target.value))}
+                                onChange={(e) => updateBuildingParam('A_L', validateFloat(e.target.value))}
                                 unit="m²"
                             />
 
@@ -245,7 +262,7 @@ export function BuildingParametersStep({
                                 label="Eshiklar maydoni, A"
                                 subscript="D"
                                 value={A_D}
-                                onChange={(e) => setA_D(validateFloat(e.target.value))}
+                                onChange={(e) => updateBuildingParam('A_D', validateFloat(e.target.value))}
                                 unit="m²"
                             />
 
@@ -254,7 +271,7 @@ export function BuildingParametersStep({
                                 label="Yerdagi pol hamda yer sathidan pastdagi devorlar maydoni, A"
                                 subscript="CG"
                                 value={A_CG}
-                                onChange={(e) => setA_CG(validateFloat(e.target.value))}
+                                onChange={(e) => updateBuildingParam('A_CG', validateFloat(e.target.value))}
                                 unit="m²"
                             />
 
@@ -263,7 +280,7 @@ export function BuildingParametersStep({
                                 label="Isitilmaydigan yerto'la ustidagi pol maydoni, A"
                                 subscript="G"
                                 value={A_G}
-                                onChange={(e) => setA_G(validateFloat(e.target.value))}
+                                onChange={(e) => updateBuildingParam('A_G', validateFloat(e.target.value))}
                                 unit="m²"
                             />
 
@@ -281,7 +298,7 @@ export function BuildingParametersStep({
                                 label="Tomyopmalar (yoki chordoq orayopmalari)ning jami maydoni, A"
                                 subscript="R"
                                 value={A_R}
-                                onChange={(e) => setA_R(validateFloat(e.target.value))}
+                                onChange={(e) => updateBuildingParam('A_R', validateFloat(e.target.value))}
                                 unit="m²"
                             />
 
@@ -290,7 +307,7 @@ export function BuildingParametersStep({
                                 label="Binoning isitiladigan hajmi, V"
                                 subscript="h"
                                 value={V_h}
-                                onChange={(e) => setV_h(validateFloat(e.target.value))}
+                                onChange={(e) => updateBuildingParam('V_h', validateFloat(e.target.value))}
                                 unit="m³"
                                 helpText="Tashqi devorlar ichki yuzasi va pastki qavat polidan yuqori qavat shiftigacha bo'lgan hajm hisoblanadi."
                             />

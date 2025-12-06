@@ -2,11 +2,11 @@
 import React from "react";
 import { getHumidityRegimeInfo } from "../data/heatCalculations";
 
-export function InitialDataBlock({ hududLabel, climate, heatingSeason, collapsible = false, isOpen = true, onToggle }) {
+export function InitialDataBlock({ hududLabel, climate = {}, heatingSeason = {}, collapsible = false, isOpen = true, onToggle }) {
   const bodyVisible = !collapsible || isOpen;
   
-  // Namlik rejimi ma'lumotlarini olish
-  const humidityInfo = getHumidityRegimeInfo(climate.t_in, climate.phi_in);
+  // Namlik rejimi ma'lumotlarini olish - faqat climate mavjud bo'lsa
+  const humidityInfo = climate ? getHumidityRegimeInfo(climate.t_in, climate.phi_in) : null;
 
   return (
     <section className="space-y-3">
@@ -34,7 +34,7 @@ export function InitialDataBlock({ hududLabel, climate, heatingSeason, collapsib
           <div className="space-y-2 text-[0.9rem]">
             <div className="flex items-baseline justify-between gap-3">
               <span className="font-medium">Hudud</span>
-              <span className="text-right text-[#1080c2] font-semibold">{hududLabel}</span>
+              <span className="text-right text-[#1080c2] font-semibold">{hududLabel || "—"}</span>
             </div>
             <div className="border-t border-dashed border-gray-200" />
             <div className="flex items-baseline justify-between gap-3 pt-1">
@@ -43,7 +43,7 @@ export function InitialDataBlock({ hududLabel, climate, heatingSeason, collapsib
                 <sub className="align-baseline text-[0.7em]">i</sub>, °C
               </span>
               <span className="text-right text-[#1080c2] font-semibold">
-                {climate.t_in != null && climate.t_in !== ""
+                {climate && climate.t_in != null && climate.t_in !== ""
                   ? `${climate.t_in} °C`
                   : "—"}
               </span>
@@ -58,7 +58,7 @@ export function InitialDataBlock({ hududLabel, climate, heatingSeason, collapsib
                   <sub className="align-baseline text-[0.7em]">i</sub>, %
                 </span>
                 <span className="text-right text-[#1080c2] font-semibold">
-                  {climate.phi_in != null && climate.phi_in !== ""
+                  {climate && climate.phi_in != null && climate.phi_in !== ""
                     ? `${climate.phi_in} %`
                     : "—"}
                 </span>
@@ -82,7 +82,7 @@ export function InitialDataBlock({ hududLabel, climate, heatingSeason, collapsib
                   <sub className="align-baseline text-[0.75em]">is.dav</sub>
                 </span>
                 <span className="font-semibold text-[#1080c2] text-right whitespace-nowrap">
-                  {heatingSeason.t_is_dav != null ? `${heatingSeason.t_is_dav.toFixed(1)} °C` : "—"}
+                  {heatingSeason && heatingSeason.t_is_dav != null ? `${heatingSeason.t_is_dav.toFixed(1)} °C` : "—"}
                 </span>
               </p>
               <p className="text-xs text-gray-500 italic mt-1">
@@ -99,7 +99,7 @@ export function InitialDataBlock({ hududLabel, climate, heatingSeason, collapsib
                   <sub className="align-baseline text-[0.75em]">is.dav</sub>
                 </span>
                 <span className="font-semibold text-[#1080c2] text-right whitespace-nowrap">
-                  {heatingSeason.Z_is_dav != null ? `${heatingSeason.Z_is_dav.toFixed(0)} sutka` : "—"}
+                  {heatingSeason && heatingSeason.Z_is_dav != null ? `${heatingSeason.Z_is_dav.toFixed(0)} sutka` : "—"}
                 </span>
               </p>
               <p className="text-xs text-gray-500 italic mt-1">
@@ -115,7 +115,7 @@ export function InitialDataBlock({ hududLabel, climate, heatingSeason, collapsib
                   <sub className="align-baseline text-[0.75em]">t</sub>
                 </span>
                 <span className="font-semibold text-[#1080c2] text-right whitespace-nowrap">
-                  {climate.t_out != null ? `${climate.t_out} °C` : "—"}
+                  {climate && climate.t_out != null ? `${climate.t_out} °C` : "—"}
                 </span>
               </p>
               <p className="text-xs text-gray-500 italic mt-1">

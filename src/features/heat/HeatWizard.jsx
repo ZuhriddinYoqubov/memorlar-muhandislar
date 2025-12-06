@@ -11,6 +11,8 @@ import { EshikDarvozaStep } from "./controls/EshikDarvozaStep";
 import { DerazaBalkonStep } from "./controls/DerazaBalkonStep";
 import { EnclosureStep } from "./controls/EnclosureStep";
 import { InitialDataBlock } from "./controls/InitialDataBlock";
+import { InitialStep } from "./controls/InitialStep";
+import { FloorHeatCalculationStep } from "./controls/FloorHeatCalculationStep";
 import { NormativeQStep } from "./controls/NormativeQStep";
 import { BuildingParametersStep } from "./controls/BuildingParametersStep";
 import { WizardPrimaryButton, WizardSecondaryButton } from "./controls/WizardButtons";
@@ -57,12 +59,13 @@ const STEPS = [
     title: "Issiqlik texnik hisob-kitobi",
     description: "",
   },
-  {
-    id: "normative_q",
-    title: "Isitishga me'yoriy solishtirma issiqlik sarfi",
-    description:
-      "Obekt uchun isitishga me'yoriy solishtirma issiqlik sarfini aniqlash.",
-  },
+  // Vaqtincha o'chirilgan
+  // {
+  //   id: "normative_q",
+  //   title: "Isitishga me'yoriy solishtirma issiqlik sarfi",
+  //   description:
+  //     "Obekt uchun isitishga me'yoriy solishtirma issiqlik sarfini aniqlash.",
+  // },
 ];
 
 // StepBadge – stepper ichidagi dumaloq raqamli indikator (1, 2, 3, ...).
@@ -98,57 +101,56 @@ function StepBadge({ label, isActive, isCompleted, hasError }) {
 
 // HeatWizard – barcha stepper, formalar va modallarni birlashtiruvchi asosiy komponent.
 export default function HeatWizard() {
-  const [activeIndex, setActiveIndex] = useState(0); // hozirgi displayStep indeksi
+  // Vaqtinchalik default ma'lumotlarni localStorage dan yuklash
+  const loadTempDefaults = () => {
+    try {
+      const saved = localStorage.getItem('heatWizard_tempDefaults');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      console.error('Failed to load temp defaults:', e);
+      return null;
+    }
+  };
+
+  const saveTempDefaults = (data) => {
+    try {
+      localStorage.setItem('heatWizard_tempDefaults', JSON.stringify(data));
+    } catch (e) {
+      console.error('Failed to save temp defaults:', e);
+    }
+  };
+
+  const tempDefaults = loadTempDefaults();
+
+  const [activeIndex, setActiveIndex] = useState(() => {
+    // localStorage dan activeIndex ni yuklash
+    try {
+      const saved = typeof window !== "undefined" ? window.localStorage.getItem("heatWizardActiveIndex") : null;
+      return saved ? parseInt(saved, 10) : 0;
+    } catch (e) {
+      return 0;
+    }
+  }); // hozirgi displayStep indeksi
   const [heatCalcRunIndex, setHeatCalcRunIndex] = useState(0); // Issiqlik texnik hisob (2.n) tartib raqami
   const [maxVisitedIndex, setMaxVisitedIndex] = useState(0); // foydalanuvchi yetib borgan eng katta step indeksi
 
-  // Issiqlik texnik hisoblari uchun dinamik 2.n steplar (boshlang'ichda bo'sh, birinchi modal tanlovida 2-step sifatida qo'shiladi)
-  const [heatSteps, setHeatSteps] = useState([]);
-
-  // UI da ko'rsatiladigan barcha steplar:
-  // - Agar hali birorta issiqlik hisobi tanlanmagan bo'lsa: 1, 2, 3 (placeholder), 4
-  // - Agar faqat bitta issiqlik hisobi bo'lsa: 1, 2, 3, 4
-  // - Agar bir nechta bo'lsa: 1, 2, 3.1, 3.2, ..., 4
-  const displaySteps = useMemo(() => {
-    if (heatSteps.length === 0) {
-      return [
-        { kind: "logical", id: "initial", label: "1" },
-        { kind: "logical", id: "building_parameters", label: "2" },
-        { kind: "logical", id: "heat_placeholder", label: "3" },
-        { kind: "logical", id: "normative_q", label: "4" },
-      ];
-    }
-
-    if (heatSteps.length === 1) {
-      // Faqat bitta issiqlik stepi bo'lsa, u umumiy 3-step sifatida ko'rinadi
-      return [
-        { kind: "logical", id: "initial", label: "1" },
-        { kind: "logical", id: "building_parameters", label: "2" },
-        { ...heatSteps[0], label: "3" },
-        { kind: "logical", id: "normative_q", label: "4" },
-      ];
-    }
-
-    // Ikki va undan ko'p issiqlik steplari bo'lsa, 3.1, 3.2, ... sifatida nomlanadi
-    return [
-      { kind: "logical", id: "initial", label: "1" },
-      { kind: "logical", id: "building_parameters", label: "2" },
-      ...heatSteps.map((step, idx) => ({
-        ...step,
-        label: `3.${idx + 1}`,
-      })),
-      { kind: "logical", id: "normative_q", label: "4" },
-    ];
-  }, [heatSteps]);
-
   // 1-bosqich: Dastlabki ma'lumotlar (obekt nomi, turi, hudud va h.k.) uchun lokal state
   const [initial, setInitial] = useState({
-    objectName: "",
-    province: "",
-    region: "",
-    objectType: "",
-    protectionLevel: "",
-    preparedBy: "",
+    objectName: tempDefaults?.initial?.objectName || "Mavjud turar-joy binosini, yuridik hujjatga ega qismini \"Tibbiyot muassasasi\" sifatida noturar joy toifasiga ixtisosini o'zgartirish va rekonstruksiya qilish.",
+    province: tempDefaults?.initial?.province || "Toshkent viloyati",
+    region: tempDefaults?.initial?.region || "4",
+    objectType: tempDefaults?.initial?.objectType || "1",
+    protectionLevel: tempDefaults?.initial?.protectionLevel || "II",
+    preparedBy: tempDefaults?.initial?.preparedBy || "Yoqubov Zuhriddin",
+  });
+
+  // Loyiha ma'lumotlari uchun state
+  const [projectData, setProjectData] = useState({
+    developer: tempDefaults?.projectData?.developer || "Yoqubov Zuhriddin",
+    organization: tempDefaults?.projectData?.organization || "Foster and partners",
+    contactPhone: tempDefaults?.projectData?.contactPhone || "+99899 999 99 99",
+    designerAddress: tempDefaults?.projectData?.designerAddress || "New York city",
+    objectAddress: tempDefaults?.projectData?.objectAddress || "Chikago",
   });
 
   // 1-bosqich uchun validatsiya xatoliklari
@@ -178,19 +180,19 @@ export default function HeatWizard() {
 
   // Ichki/tashqi iqlim parametrlarini saqlash (t_i, φ_i, t_t)
   const [climate, setClimate] = useState({
-    t_in: 20,
-    phi_in: 55,
-    t_out: null,
+    t_in: tempDefaults?.climate?.t_in || 20,
+    phi_in: tempDefaults?.climate?.phi_in || 55,
+    t_out: tempDefaults?.climate?.t_out || -16,
   });
 
-  const [layers, setLayers] = useState([
+  const [layers, setLayers] = useState(tempDefaults?.layers || [
     { id: 1, name: "Qurilish materialini tanlang", thickness_mm: "", rho: "", lambda: "", mu: 10 },
   ]);
 
   const [materialModal, setMaterialModal] = useState({ open: false, layerId: null });
   const [draggingLayerId, setDraggingLayerId] = useState(null);
 
-  const [airLayer, setAirLayer] = useState({
+  const [airLayer, setAirLayer] = useState(tempDefaults?.airLayer || {
     enabled: false,
     thickness_mm: "",
     layerTemp: "positive",
@@ -198,16 +200,95 @@ export default function HeatWizard() {
   });
 
   // 3-bosqich: konstruksiya turi va qovurg'a balandligi nisbati uchun state
-  const [constructionType, setConstructionType] = useState("");
-  const [ribHeightRatio, setRibHeightRatio] = useState("");
+  const [constructionType, setConstructionType] = useState(tempDefaults?.constructionType || "");
+  const [ribHeightRatio, setRibHeightRatio] = useState(tempDefaults?.ribHeightRatio || "");
   const [showRibInfo, setShowRibInfo] = useState(false); // h/a eslatma modali
-  const [derazaType, setDerazaType] = useState(""); // Deraza va balkon eshiklari turi
+  const [derazaType, setDerazaType] = useState(tempDefaults?.derazaType || ""); // Deraza va balkon eshiklari turi
   
   // Deraza steplari uchun tanlangan variantlar
-  const [selectedWindowGroup, setSelectedWindowGroup] = useState("");
-  const [selectedWindowVariant, setSelectedWindowVariant] = useState("");
-  const [selectedWindowGroup2, setSelectedWindowGroup2] = useState("");
-  const [selectedWindowVariant2, setSelectedWindowVariant2] = useState("");
+  const [selectedWindowGroup, setSelectedWindowGroup] = useState(tempDefaults?.selectedWindowGroup || "");
+  const [selectedWindowVariant, setSelectedWindowVariant] = useState(tempDefaults?.selectedWindowVariant || "");
+  const [selectedWindowGroup2, setSelectedWindowGroup2] = useState(tempDefaults?.selectedWindowGroup2 || "");
+  const [selectedWindowVariant2, setSelectedWindowVariant2] = useState(tempDefaults?.selectedWindowVariant2 || "");
+
+  // Bino parametrlari uchun state
+  const [buildingParams, setBuildingParams] = useState({
+    objectType: tempDefaults?.buildingParams?.objectType || "",
+    P_m: tempDefaults?.buildingParams?.P_m || "",
+    H_m: tempDefaults?.buildingParams?.H_m || "",
+    floors: tempDefaults?.buildingParams?.floors || "",
+    A_f: tempDefaults?.buildingParams?.A_f || "",
+    A_mc1: tempDefaults?.buildingParams?.A_mc1 || "",
+    V_h: tempDefaults?.buildingParams?.V_h || "",
+    weeklyHours: tempDefaults?.buildingParams?.weeklyHours || "",
+    Xodim: tempDefaults?.buildingParams?.Xodim || "",
+    roofType: tempDefaults?.buildingParams?.roofType || "",
+    A_W: tempDefaults?.buildingParams?.A_W || "",
+    A_L: tempDefaults?.buildingParams?.A_L || "",
+    A_D: tempDefaults?.buildingParams?.A_D || "",
+    A_CG: tempDefaults?.buildingParams?.A_CG || "",
+    A_G: tempDefaults?.buildingParams?.A_G || "",
+    A_R: tempDefaults?.buildingParams?.A_R || "",
+  });
+
+  // Iqlimiy ma'lumotlarni viloyat va tuman asosida hisoblash
+  const heatingSeason = useMemo(() => {
+    if (!initial.province || !initial.region) return { t_is_dav: null, Z_is_dav: null, D_is_dav: null };
+
+    const province = REGIONS.find((p) => p?.viloyat === initial.province);
+    if (!province) return { t_is_dav: null, Z_is_dav: null, D_is_dav: null };
+
+    const list = province.hududlar || [];
+    const idx = Number(initial.region);
+    const district = Number.isFinite(idx) ? list[idx] : null;
+    if (!district) return { t_is_dav: null, Z_is_dav: null, D_is_dav: null };
+
+    // t_is_dav - 20-22 qatorlar o'rtacha qiymati
+    const t8_avg = district.havo_sutka_ortacha_c?.t_8?.ortacha_harorat;
+    const t12_avg = district.havo_sutka_ortacha_c?.t_12?.ortacha_harorat;
+    const t_is_dav = t8_avg && t12_avg ? (t8_avg + t12_avg) / 2 : null;
+
+    // Z_is_dav va D_is_dav - 19-21 qatorlar o'rtacha qiymati (davomiylik)
+    const t8_days = district.havo_sutka_ortacha_c?.t_8?.davom_etish_sutka;
+    const t12_days = district.havo_sutka_ortacha_c?.t_12?.davom_etish_sutka;
+    const Z_is_dav = t8_days && t12_days ? (t8_days + t12_days) / 2 : null;
+    const D_is_dav = Z_is_dav; // D_is_dav va Z_is_dav bir xil
+
+    return { t_is_dav, Z_is_dav, D_is_dav };
+  }, [initial.province, initial.region]);
+
+  // Issiqlik texnik hisoblari uchun dinamik steplar (boshlang'ichda bo'sh, keyin 3,4,5... tartibida qo'shiladi)
+  const [heatSteps, setHeatSteps] = useState(tempDefaults?.heatSteps || []);
+
+  // UI da ko'rsatiladigan barcha steplar:
+  // - Agar hali birorta issiqlik hisobi tanlanmagan bo'lsa: 1, 2, 3 (placeholder)
+  // - Agar issiqlik hisoblari bo'lsa: 1, 2, 3, 4, 5...n
+  const displaySteps = useMemo(() => {
+    const baseSteps = [
+      { kind: "logical", id: "initial", label: "1" },
+      { kind: "logical", id: "building_parameters", label: "2" },
+    ];
+    
+    if (heatSteps.length === 0) {
+      // Agar issiqlik hisoblari bo'lmasa, placeholder step qo'shamiz
+      return [
+        ...baseSteps,
+        { kind: "logical", id: "heat_placeholder", label: "3" },
+      ];
+    }
+    
+    // Issiqlik texnik hisobi steplari (3, 4, 5... n)
+    const heatCalcSteps = heatSteps.map((step, idx) => ({
+      ...step,
+      label: String(idx + 3), // 3 dan boshlab raqamlash
+    }));
+    
+    // Vaqtincha o'chirilgan: normative_q step
+    // const lastStepNumber = 3 + heatSteps.length;
+    // const normativeStep = { kind: "logical", id: "normative_q", label: String(lastStepNumber) };
+    
+    return [...baseSteps, ...heatCalcSteps];
+  }, [heatSteps]);
   
   // Validation error flags
   const [showConstructionError, setShowConstructionError] = useState(false); // Konstruksiya turi tanlanmaganligini ko'rsatish
@@ -327,6 +408,54 @@ export default function HeatWizard() {
 
   // Foydalanuvchi issiqlik texnik hisob bosqichlaridan (heat_calc_1 yoki heat_calc_n) biriga kamida bir marta kirganmi
   const [hasHeatCalcVisited, setHasHeatCalcVisited] = useState(false);
+
+  // Vaqtinchalik defaultlarni tozalash funksiyasi
+  const clearTempDefaults = () => {
+    try {
+      localStorage.removeItem('heatWizard_tempDefaults');
+      alert('Vaqtinchalik defaultlar tozalandi. Sahifani yangilang.');
+    } catch (e) {
+      console.error('Failed to clear temp defaults:', e);
+    }
+  };
+
+  // Ma'lumotlarni localStorage ga saqlash
+  useEffect(() => {
+    const dataToSave = {
+      initial,
+      projectData,
+      climate,
+      buildingParams,
+      // Issiqlik texnik hisobi steplari ma'lumotlari
+      heatSteps: heatSteps.map(step => ({
+        ...step,
+        // Faqat kerakli ma'lumotlarni saqlaymiz
+        savedState: step.savedState ? {
+          constructionType: step.savedState.constructionType,
+          ribHeightRatio: step.savedState.ribHeightRatio,
+          derazaType: step.savedState.derazaType,
+          layers: step.savedState.layers,
+          airLayer: step.savedState.airLayer,
+          selectedWindowGroup: step.savedState.selectedWindowGroup,
+          selectedWindowVariant: step.savedState.selectedWindowVariant,
+          selectedWindowGroup2: step.savedState.selectedWindowGroup2,
+          selectedWindowVariant2: step.savedState.selectedWindowVariant2,
+        } : undefined,
+        presetConstructionType: step.presetConstructionType,
+      })),
+      // Umumiy konstruksiya ma'lumotlari
+      constructionType,
+      ribHeightRatio,
+      derazaType,
+      layers,
+      airLayer,
+      selectedWindowGroup,
+      selectedWindowVariant,
+      selectedWindowGroup2,
+      selectedWindowVariant2,
+    };
+    saveTempDefaults(dataToSave);
+  }, [initial, projectData, climate, buildingParams, heatSteps, constructionType, ribHeightRatio, derazaType, layers, airLayer, selectedWindowGroup, selectedWindowVariant, selectedWindowGroup2, selectedWindowVariant2]);
 
   // Active step indeksini localStorage ga saqlab boramiz, sahifa yangilanganda o'sha step tiklanishi uchun
   useEffect(() => {
@@ -513,21 +642,47 @@ export default function HeatWizard() {
   const isHeatLikeStep = currentDisplayStep?.kind === "heat" || currentDisplayStep?.id === "heat_placeholder";
   const currentStepId = isHeatLikeStep ? "heat_calc_1" : currentDisplayStep?.id || "initial";
 
+  // Konstruksiya turidan qisqa nom olish funksiyasi (stepper uchun)
+  const getShortConstructionName = (constructionTypeValue) => {
+    if (!constructionTypeValue) return "Issiqlik texnik hisob-kitobi";
+    
+    const shortNames = {
+      "tashqi_devor": "Devor",
+      "tashqi_devor_ventfasad": "Ventfasad",
+      "tom_ochiq_chordoq": "Tomyopma",
+      "chordoq_orayopma": "Orayopma",
+      "otish_joyi_orayopma": "Orayopma",
+      "yertola_tashqi_havo_boglangan": "Orayopma",
+      "isitilmaydigan_yertola_yoruglik_oraliqli": "Orayopma",
+      "isitilmaydigan_yertola_yuqori_yorugliksiz": "Orayopma",
+      "isitilmaydigan_texnik_tagxona_pastda": "Orayopma",
+      "eshik_darvoza": "Eshik",
+      "deraza_balkon_eshiklari": "Deraza",
+      "floor_heat_calculation": "Yerdagi pol",
+    };
+    
+    return shortNames[constructionTypeValue] || "Issiqlik texnik hisob-kitobi";
+  };
+
   // Get the base step meta
   const baseStepMeta = STEPS.find((s) => s.id === currentStepId) || STEPS[0];
 
-  // If it's a heat calculation step, show the construction type in the title
+  // If it's a heat calculation step, show the step number in the title
   const currentStepMeta = useMemo(() => {
     const meta = { ...baseStepMeta };
 
     if (currentStepId === "heat_calc_1") {
-      // For heat calculation steps, get the construction type from the current step
+      // Get the construction type for title
       const currentConstructionType = currentDisplayStep?.presetConstructionType || constructionType;
       if (currentConstructionType) {
         const type = CONSTRUCTION_TYPES.find((ct) => ct.value === currentConstructionType);
         if (type) {
-          meta.title = type.label;
+          meta.title = `${type.label} issiqlik texnik hisob-kitobi`;
+        } else {
+          meta.title = "Issiqlik texnik hisob-kitobi";
         }
+      } else {
+        meta.title = "Issiqlik texnik hisob-kitobi";
       }
     }
 
@@ -537,10 +692,25 @@ export default function HeatWizard() {
   // Filter construction types based on presetConstructionType
   // If presetConstructionType is null (to'suvchi konstruksiya selected), exclude eshik_darvoza and deraza_balkon_eshiklari
   const filteredConstructionTypes = useMemo(() => {
-    if (currentStepId === "heat_calc_1" && currentDisplayStep?.presetConstructionType === null) {
-      return CONSTRUCTION_TYPES.filter(
-        (type) => type.value !== "eshik_darvoza" && type.value !== "deraza_balkon_eshiklari"
-      );
+    if (currentStepId === "heat_calc_1") {
+      const preset = currentDisplayStep?.presetConstructionType;
+      
+      // Agar to'suvchi konstruksiya tanlangan bo'lsa (preset === null yoki preset yo'q)
+      if (preset === null || preset === undefined) {
+        return CONSTRUCTION_TYPES.filter(
+          (type) => type.value !== "eshik_darvoza" && type.value !== "deraza_balkon_eshiklari"
+        );
+      }
+      
+      // Agar deraza tanlangan bo'lsa, faqat deraza ko'rsatiladi
+      if (preset === "deraza_balkon_eshiklari") {
+        return CONSTRUCTION_TYPES.filter((type) => type.value === "deraza_balkon_eshiklari");
+      }
+      
+      // Agar eshik tanlangan bo'lsa, faqat eshik ko'rsatiladi
+      if (preset === "eshik_darvoza") {
+        return CONSTRUCTION_TYPES.filter((type) => type.value === "eshik_darvoza");
+      }
     }
     return CONSTRUCTION_TYPES;
   }, [currentStepId, currentDisplayStep]);
@@ -554,6 +724,13 @@ export default function HeatWizard() {
     : [];
 
   const lastHeatStepIndex = heatStepIndices.length > 0 ? heatStepIndices[heatStepIndices.length - 1] : -1;
+
+  // Step o'zgarganda hozirgi stepning ma'lumotlarini yuklash
+  useEffect(() => {
+    if (currentDisplayStep?.kind === "heat") {
+      loadHeatStepState(currentDisplayStep);
+    }
+  }, [currentDisplayStep?.id]);
 
   // Step o'zgarganda sahifani yuqoriga scroll qilish
   useEffect(() => {
@@ -608,30 +785,6 @@ export default function HeatWizard() {
       setShowDerazaTypeError(false);
     }
   }, [derazaType]);
-
-  // Issiqlik davri uchun yordamchi qiymatlar (t_is.dav, Z_is.dav, D_is.dav) ni hisoblash.
-  // REGIONS jadvalidagi 8 va 12-soatlik ma'lumotlar asosida o'rtacha qiymatlar olinadi.
-  const heatingSeason = useMemo(() => {
-    if (!initial.province || initial.region === "" || initial.region == null) {
-      return { t_is_dav: null, Z_is_dav: null, D_is_dav: null };
-    }
-
-    const prov = (REGIONS || []).find((p) => p?.viloyat === initial.province);
-    const idx = Number(initial.region);
-    const hudud = prov?.hududlar?.[idx];
-    const t8 = hudud?.havo_sutka_ortacha_c?.t_8;
-    const t12 = hudud?.havo_sutka_ortacha_c?.t_12;
-
-    if (!t8 || !t12) {
-      return { t_is_dav: null, Z_is_dav: null, D_is_dav: null };
-    }
-
-    const t_is_dav = ((Number(t8.ortacha_harorat) || 0) + (Number(t12.ortacha_harorat) || 0)) / 2;
-    const Z_is_dav = ((Number(t8.davom_etish_sutka) || 0) + (Number(t12.davom_etish_sutka) || 0)) / 2;
-    const D_is_dav = (Number(climate.t_in) - t_is_dav) * Z_is_dav;
-
-    return { t_is_dav, Z_is_dav, D_is_dav };
-  }, [initial.province, initial.region, climate.t_in]);
 
   const deltaTtResult = useMemo(
     () =>
@@ -883,10 +1036,11 @@ export default function HeatWizard() {
       return true;
     }
 
-    if (stepId === "normative_q") {
-      // Me'yoriy issiqlik sarfi bosqichi – hozircha issiqlik hisobiga kirilgan bo'lsa yetarli
-      return !!hasHeatCalcVisited;
-    }
+    // Vaqtincha o'chirilgan: normative_q tekshiruvi
+    // if (stepId === "normative_q") {
+    //   // Me'yoriy issiqlik sarfi bosqichi – hozircha issiqlik hisobiga kirilgan bo'lsa yetarli
+    //   return !!hasHeatCalcVisited;
+    // }
 
     return false;
   };
@@ -965,6 +1119,10 @@ export default function HeatWizard() {
     // Agar hozirgi bosqich issiqlik texnik hisobi bo'lsa (2-step / 2.n), validatsiya qilamiz
     const isHeatCalcStep = currentStepId === "heat_calc_1" || currentDisplayStep?.kind === "heat";
     if (isHeatCalcStep) {
+      console.log("🔍 Heat calc step validatsiyasi boshlandi");
+      console.log("currentStepId:", currentStepId);
+      console.log("currentDisplayStep:", currentDisplayStep);
+      
       // Avval hozirgi stepning ma'lumotlarini saqlaymiz
       if (currentDisplayStep?.kind === "heat") {
         saveHeatStepState(currentDisplayStep.id);
@@ -1004,12 +1162,13 @@ export default function HeatWizard() {
         }
       }
       
-      // h/a nisbati - tashqi devor va ventfasaddan tashqari barcha konstruksiyalar uchun majburiy
+      // h/a nisbati - tashqi devor va ventfasaddan tashqari barcha konstruksiyalar uchun majburiy (lekin eshik/deraza va polda shart emas)
       if (currentConstructionType && 
           currentConstructionType !== "tashqi_devor" && 
           currentConstructionType !== "tashqi_devor_ventfasad" &&
           currentConstructionType !== "eshik_darvoza" &&
           currentConstructionType !== "deraza_balkon_eshiklari" &&
+          currentConstructionType !== "floor_heat_calculation" &&
           !ribHeightRatio) {
         missing.push("Qovurg'a balandligi nisbati (h/a)");
         hasRibHeightError = true;
@@ -1125,11 +1284,14 @@ export default function HeatWizard() {
       }
       
       // Hammasi to'g'ri bo'lsa, barcha xatolik flaglarini o'chiramiz va keyingi modul tanlash oynasini ochamiz
+      console.log("✅ Validatsiya muvaffaqiyatli o'tdi, modal ochilmoqda");
+      console.log("showNextStepChoice (oldin):", showNextStepChoice);
       setShowConstructionError(false);
       setShowRibHeightError(false);
       setShowLayersError(false);
       setShowDerazaTypeError(false);
       setShowNextStepChoice(true);
+      console.log("setShowNextStepChoice(true) chaqirildi");
       return;
     }
 
@@ -1189,25 +1351,26 @@ export default function HeatWizard() {
       }
     }
 
-    if (step.id === "normative_q") {
-      if (!hasHeatCalcVisited) {
-        window.alert(
-          "Avval to'suvchi konstruksiyalar bo'yicha issiqlik texnik hisob-kitoblarini kamida bir marta bajaring",
-        );
-        return;
-      }
-      
-      // Heat calc steplarning validatsiyasini tekshirish
-      const heatStepsToCheck = displaySteps.filter(ds => ds.kind === "heat");
-      for (const heatStep of heatStepsToCheck) {
-        if (!isStepLogicallyCompleted(heatStep)) {
-          window.alert(
-            "Barcha issiqlik texnik hisob-kitob bosqichlarini to'liq va to'g'ri bajarib bo'ling.\n\nShart bajarilmagan yoki ma'lumotlar to'liq kiritilmagan bosqichlar mavjud (sariq indeksli).",
-          );
-          return;
-        }
-      }
-    }
+    // Vaqtincha o'chirilgan: normative_q tekshiruvi
+    // if (step.id === "normative_q") {
+    //   if (!hasHeatCalcVisited) {
+    //     window.alert(
+    //       "Avval to'suvchi konstruksiyalar bo'yicha issiqlik texnik hisob-kitoblarini kamida bir marta bajaring",
+    //     );
+    //     return;
+    //   }
+    //   
+    //   // Heat calc steplarning validatsiyasini tekshirish
+    //   const heatStepsToCheck = displaySteps.filter(ds => ds.kind === "heat");
+    //   for (const heatStep of heatStepsToCheck) {
+    //     if (!isStepLogicallyCompleted(heatStep)) {
+    //       window.alert(
+    //         "Barcha issiqlik texnik hisob-kitob bosqichlarini to'liq va to'g'ri bajarib bo'ling.\n\nShart bajarilmagan yoki ma'lumotlar to'liq kiritilmagan bosqichlar mavjud (sariq indeksli).",
+    //       );
+    //       return;
+    //     }
+    //   }
+    // }
 
     syncHeatStepState(activeIndex, idx);
     setActiveIndex(idx);
@@ -1228,10 +1391,11 @@ export default function HeatWizard() {
     }
 
     // 4-bosqich (normativ)
-    if (currentStepId === "normative_q") {
-      exportNormativeStepPdf({ initial });
-      return;
-    }
+    // Vaqtincha o'chirilgan
+    // if (currentStepId === "normative_q") {
+    //   exportNormativeStepPdf({ initial });
+    //   return;
+    // }
 
     // 3-bosqich (issiqlik texnik hisoblar)
     const isHeatCalcStep = currentStepId === "heat_calc_1" || currentDisplayStep?.kind === "heat";
@@ -1424,18 +1588,44 @@ export default function HeatWizard() {
                 }
               }
 
-              // Issiqlik steplarini o'chirish uchun handler (faqat haqiqiy heatSteps elementlari uchun)
-              const canDeleteHeatStep = isHeatCalc && ds.kind === "heat" && heatSteps.length > 1;
+              // Issiqlik steplarini o'chirish uchun handler
+              // Devor/Ventfasad uchun maxsus logika: ikkala tur ham mavjud bo'lsa o'chirish mumkin
+              const canDeleteHeatStep = (() => {
+                if (!isHeatCalc || ds.kind !== "heat") return false;
+                
+                const stepConstructionType = ds.presetConstructionType || (ds.savedState?.constructionType);
+                
+                // Devor yoki Ventfasad bo'lsa
+                if (stepConstructionType === "tashqi_devor" || stepConstructionType === "tashqi_devor_ventfasad") {
+                  // Devor va Ventfasad steplarini sanash
+                  const wallSteps = heatSteps.filter(step => {
+                    const ct = step.presetConstructionType || step.savedState?.constructionType;
+                    return ct === "tashqi_devor" || ct === "tashqi_devor_ventfasad";
+                  });
+                  // Agar ikkala tur ham mavjud bo'lsa (2 yoki undan ko'p), o'chirish mumkin
+                  return wallSteps.length > 1;
+                }
+                
+                // Boshqa konstruksiya turlari uchun: faqat 1 tadan ko'p bo'lsa o'chirish mumkin
+                return heatSteps.length > 1;
+              })();
 
               const handleDeleteHeatStep = (e) => {
                 e.stopPropagation();
                 if (!canDeleteHeatStep) return;
+                
+                // O'chirilayotgan stepdan oldingi steplar sonini hisoblaymiz
+                const stepsBefore = displaySteps.slice(0, idx).length;
+                
                 setHeatSteps((prev) => prev.filter((h) => h.id !== ds.id));
 
-                // Agar o'chirilayotgan step aktiv bo'lsa, yaqinidagi stepga o'tkazamiz
+                // Agar o'chirilayotgan step aktiv bo'lsa, to'g'ri indeksga o'tkazamiz
                 if (isActive) {
-                  const nextIndex = idx > 0 ? idx - 1 : 0;
-                  setActiveIndex(nextIndex);
+                  // O'chirilgandan keyin yangi displaySteps
+                  const newDisplaySteps = displaySteps.filter((h) => h.id !== ds.id);
+                  // Oldingi steplar soni yangi massivda ham o'sha bo'ladi
+                  const newActiveIndex = Math.min(stepsBefore, newDisplaySteps.length - 1);
+                  setActiveIndex(newActiveIndex);
                 }
               };
 
@@ -1453,51 +1643,67 @@ export default function HeatWizard() {
                             : "text-gray-400 hover:text-gray-600"
                       }`}
                     >
-                      <StepBadge
-                        label={ds.label}
-                        isActive={isActive}
-                        isCompleted={isCompleted}
-                        hasError={hasError}
-                      />
+                      <div className="relative">
+                        <StepBadge
+                          label={ds.label}
+                          isActive={isActive}
+                          isCompleted={isCompleted}
+                          hasError={hasError}
+                        />
+                        {canDeleteHeatStep && (
+                          <button
+                            type="button"
+                            onClick={handleDeleteHeatStep}
+                            className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 bg-gray-300 hover:bg-gray-400 text-gray-700 shadow-sm z-10"
+                            style={{ borderRadius: '70%' }}
+                            aria-label="Issiqlik bosqichini o'chirish"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              className="w-2.5 h-2.5"
+                              aria-hidden="true"
+                            >
+                              <path
+                                d="M6 6l12 12M18 6L6 18"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
 
                       {(() => {
                         const isInitialStep = !isHeatCalc && ds.id === "initial";
+                        const isBuildingStep = !isHeatCalc && ds.id === "building_parameters";
                         const isNormativeStep = !isHeatCalc && ds.id === "normative_q";
-                        const isLastHeatStep = isHeatCalc && idx === lastHeatStepIndex;
-                        const showTextHere = isInitialStep || isNormativeStep || isLastHeatStep;
-
-                        if (!showTextHere) return null;
-
-                        return (
-                          <span className="text-left max-w-xs line-clamp-2 hidden sm:inline">
-                            {stepMeta.title}
-                          </span>
-                        );
+                        
+                        // Har bir issiqlik stepida konstruksiya nomini ko'rsatish
+                        if (isHeatCalc) {
+                          const stepConstructionType = ds.presetConstructionType || (ds.kind === "heat" && ds.savedState?.constructionType);
+                          const shortName = getShortConstructionName(stepConstructionType);
+                          return (
+                            <span className="text-left max-w-xs line-clamp-2 hidden sm:inline">
+                              {shortName}
+                            </span>
+                          );
+                        }
+                        
+                        // Oddiy steplar uchun
+                        if (isInitialStep || isBuildingStep || isNormativeStep) {
+                          return (
+                            <span className="text-left max-w-xs line-clamp-2 hidden sm:inline">
+                              {stepMeta.title}
+                            </span>
+                          );
+                        }
+                        
+                        return null;
                       })()}
                     </button>
-                    {canDeleteHeatStep && (
-                      <button
-                        type="button"
-                        onClick={handleDeleteHeatStep}
-                        className="absolute -top-1 -right-1 flex items-center justify-center w-3 h-3 rounded-full bg-gray-300 hover:bg-gray-400 text-gray-700 shadow-sm z-10"
-                        aria-label="Issiqlik bosqichini o'chirish"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          className="w-2 h-2"
-                          aria-hidden="true"
-                        >
-                          <path
-                            d="M6 6l12 12M18 6L6 18"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </button>
-                    )}
                   </div>
                 </div>
               );
@@ -1510,6 +1716,14 @@ export default function HeatWizard() {
               <div className="text-lg md:text-xl font-semibold text-[#1080c2]">
                 {currentStepMeta.title}
               </div>
+              {/* Vaqtinchalik defaultlarni tozalash tugmasi */}
+              <button
+                onClick={clearTempDefaults}
+                className="text-xs text-gray-500 hover:text-red-600 transition-colors underline"
+                title="Vaqtinchalik defaultlarni tozalash"
+              >
+                Defaultlarni tozalash
+              </button>
             </div>
             <div className="flex items-center gap-2 justify-end">
               <button
@@ -1536,7 +1750,7 @@ export default function HeatWizard() {
               <WizardSecondaryButton onClick={goPrev} disabled={activeIndex === 0}>
                 Orqaga
               </WizardSecondaryButton>
-              <WizardPrimaryButton onClick={goNext} disabled={activeIndex === displaySteps.length - 1}>
+              <WizardPrimaryButton onClick={goNext}>
                 Keyingi bosqich
               </WizardPrimaryButton>
             </div>
@@ -1546,242 +1760,20 @@ export default function HeatWizard() {
         {/* Quyida har bir bosqichning asosiy kontent bloki joylashgan (kartochka ko'rinishidagi blok). */}
         <div className="bg-white rounded-2xl border border-[#E5E7EB] p-6 md:p-8 shadow-sm">
           {currentStepId === "initial" && (
-            <div className="space-y-6">
-              {/* 0) Obekt nomi */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Obekt nomi</label>
-                <textarea
-                  value={initial.objectName}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setInitial((s) => ({ ...s, objectName: val }));
-                    if (val && val.trim()) {
-                      setInitialErrors((err) => ({ ...err, objectName: false }));
-                    }
-                  }}
-                  rows={2}
-                  className={`w-full px-4 py-3 rounded-xl border bg-gray-50 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1080c2]/60 focus:border-[#1080c2] resize-y ${
-                    initialErrors.objectName ? "border-red-400" : "border-[#E5E7EB]"
-                  }`}
-                  placeholder="Obekt nomini kiriting"
-                />
-              </div>
-
-              {/* 1) Obekt turi */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Obekt turi</label>
-                <CustomSelect
-                  value={initial.objectType}
-                  onChange={(val) => {
-                    setInitial((s) => ({ ...s, objectType: val }));
-                    setInitialErrors((err) => ({ ...err, objectType: false }));
-                  }}
-                  error={initialErrors.objectType}
-                  placeholder="Tanlang"
-                  options={[
-                    {
-                      value: "1",
-                      label:
-                        "Turar joy, davolash-profilaktika va bolalar muassasalari, o'quv yurtlari, internatlar (3 qavatgacha)",
-                    },
-                    {
-                      value: "2",
-                      label:
-                        "Turar joy, davolash-profilaktika va bolalar muassasalari, o'quv yurtlari, internatlar (3 qavatdan yuqori)",
-                    },
-                    {
-                      value: "3",
-                      label:
-                        "Jamoat binolari, 1-bandda ko'rsatilgandan tashqari, ma'muriy va maishiy binolar, nam va ho'l rejimli xonalarni istisno qilganda",
-                    },
-                    { value: "4", label: "Quruq va normal rejimli ishlab chiqarish binolari" },
-                    { value: "5", label: "Nam va ho'l rejimli ishlab chiqarish xonalari va boshqa xonalar" },
-                    { value: "6", label: "Kartoshka va sabzavot omborlari" },
-                    {
-                      value: "7",
-                      label:
-                        "Issiqligi keragidan ortiq bo'lgan (23 Vt/m3 dan ortiq) va ichki havosining hisobiy nisbiy namligi 50%dan oshmagan ishlab chiqarish binolari",
-                    },
-                  ]}
-                />
-              </div>
-
-              {/* 2) Hudud (CustomRegionSelect) + Issiqlik himoyasi darajasi */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Hudud</label>
-                  <CustomRegionSelect
-                    province={initial.province}
-                    regionId={initial.region}
-                    error={initialErrors.province || initialErrors.region}
-                    onSelectProvince={(prov) => {
-                      setInitial((s) => ({ ...s, province: prov, region: "" }));
-                      setInitialErrors((err) => ({ ...err, province: false, region: false }));
-                    }}
-                    onSelectDistrict={(id, tOut) => {
-                      setInitial((s) => ({ ...s, region: id }));
-                      setInitialErrors((err) => ({ ...err, region: false }));
-                      if (typeof tOut === "number") {
-                        setClimate((c) => ({ ...c, t_out: Number(tOut) }));
-                      }
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                    <span>Issiqlik himoyasi darajasi</span>
-                    <button
-                      type="button"
-                      className="w-4 h-4 flex items-center justify-center rounded-full border border-gray-400 text-[10px] text-gray-600 hover:bg-gray-100"
-                      onClick={() => setShowProtectionInfo(true)}
-                      aria-label="Issiqlik himoyasi darajasi haqida ma'lumot"
-                    >
-                      ?
-                    </button>
-                  </label>
-                  <CustomSelect
-                    value={initial.protectionLevel}
-                    onChange={(val) => {
-                      setInitial((s) => ({ ...s, protectionLevel: val }));
-                      setInitialErrors((err) => ({ ...err, protectionLevel: false }));
-                    }}
-                    error={initialErrors.protectionLevel}
-                    placeholder="Tanlang"
-                    options={[
-                      { value: "I", label: "I" },
-                      { value: "II", label: "II" },
-                      { value: "III", label: "III" },
-                    ]}
-                  />
-
-                  <ProtectionLevelInfoModal 
-                    open={showProtectionInfo} 
-                    onClose={() => setShowProtectionInfo(false)} 
-                  />
-                </div>
-              </div>
-            
-              {/* 3) t_i va φ_i bir qatorda */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Ichki havoning hisobiy harorati t
-                    <sub className="align-baseline text-[0.7em]">i</sub> °C
-                  </label>
-                  <input
-                    type="number"
-                    name="t_in"
-                    value={climate.t_in}
-                    onChange={(e) => {
-                      handleClimate(e);
-                      const val = e.target.value;
-                      if (val !== "" && val != null) {
-                        setInitialErrors((err) => ({ ...err, t_in: false }));
-                      }
-                    }}
-                    className={`w-full px-4 py-3 rounded-xl border bg-gray-50 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1080c2]/60 focus:border-[#1080c2] ${
-                      initialErrors.t_in ? "border-red-400" : "border-[#E5E7EB]"
-                    }`}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Nisbiy namlik, φ
-                    <sub className="align-baseline text-[0.7em]">i</sub> %
-                  </label>
-                  <input
-                    type="number"
-                    name="phi_in"
-                    value={climate.phi_in}
-                    onChange={(e) => {
-                      handleClimate(e);
-                      const val = e.target.value;
-                      if (val !== "" && val != null) {
-                        setInitialErrors((err) => ({ ...err, phi_in: false }));
-                      }
-                    }}
-                    className={`w-full px-4 py-3 rounded-xl border bg-gray-50 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1080c2]/60 focus:border-[#1080c2] ${
-                      initialErrors.phi_in ? "border-red-400" : "border-[#E5E7EB]"
-                    }`}
-                  />
-                </div>
-              </div>
-
-              {/* 4) Iqlimiy hosila qiymatlar: t_is.dav, Z_is.dav, t_t */}
-              <div className="space-y-3 text-sm text-gray-800">
-                <div className="pt-3 first:pt-2 border-t border-dashed border-gray-200 mt-3">
-                  <p className="flex items-baseline gap-x-2 gap-y-1 text-[0.9rem] font-medium w-full">
-                    <span className="leading-snug flex-1 text-justify">
-                      O'rtacha kunlik havo harorati 10 °C dan kam yoki unga teng bo'lgan davrning o'rtacha harorati,
-                      t
-                      <sub className="align-baseline text-[0.75em]">is.dav</sub>
-                    </span>
-                    <span className="font-semibold text-[#1080c2] text-right whitespace-nowrap">
-                      {heatingSeason.t_is_dav != null ? `${heatingSeason.t_is_dav.toFixed(1)} °C` : "—"}
-                    </span>
-                  </p>
-                  <p className="text-xs text-gray-500 italic mt-1">
-                    QMQ 2.01.01-22 "Loyihalash uchun iqlimiy va fizikaviy-geologik maʼlumotlar" 4-jadval
-                    "Tashqi havoning parametrlari", 20–22-qatorlar o'rtacha qiymati
-                  </p>
-                </div>
-
-                <div className="pt-2 border-t border-dashed border-gray-200">
-                  <p className="flex items-baseline gap-x-2 gap-y-1 text-[0.9rem] font-medium w-full">
-                    <span className="leading-snug flex-1 text-justify">
-                      O'rtacha kunlik havo harorati 10 °C dan kam yoki unga teng bo'lgan davrning davomiyligi,
-                      Z
-                      <sub className="align-baseline text-[0.75em]">is.dav</sub>
-                    </span>
-                    <span className="font-semibold text-[#1080c2] text-right whitespace-nowrap">
-                      {heatingSeason.Z_is_dav != null ? `${heatingSeason.Z_is_dav.toFixed(0)} sutka` : "—"}
-                    </span>
-                  </p>
-                  <p className="text-xs text-gray-500 italic mt-1">
-                    QMQ 2.01.01-22 "Loyihalash uchun iqlimiy va fizikaviy-geologik maʼlumotlar" 4-jadval
-                    "Tashqi havoning parametrlari", 19–21-qatorlar o'rtacha qiymati
-                  </p>
-                </div>
-
-                <div className="pt-2 first:pt-2 border-t border-dashed border-gray-200 mt-2">
-                  <p className="flex items-baseline gap-x-2 gap-y-1 text-[0.9rem] font-medium w-full">
-                    <span className="leading-snug flex-1 text-justify">
-                      Tashqi havoning hisobiy qishki harorati, t
-                      <sub className="align-baseline text-[0.75em]">t</sub>
-                    </span>
-                    <span className="font-semibold text-[#1080c2] text-right whitespace-nowrap">
-                      {climate.t_out != null ? `${climate.t_out} °C` : "—"}
-                    </span>
-                  </p>
-                  <p className="text-xs text-gray-500 italic mt-1">
-                    QMQ 2.01.01-22 bo'yicha ta'minlanganligi 0,92 bo'lgan eng sovuq besh kunlikning o'rtacha
-                    haroratiga teng. 4-jadval "Tashqi havoning parametrlari", 17-qator
-                  </p>
-                </div>
-              </div>
-
-              {/* 5) Ishlab chiqdi */}
-              <div className="pt-3 border-t border-dashed border-gray-200 mt-2 space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Ishlab chiqdi:</label>
-                  <input
-                    type="text"
-                    value={initial.preparedBy}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setInitial((s) => ({ ...s, preparedBy: val }));
-                      if (val && val.trim()) {
-                        setInitialErrors((err) => ({ ...err, preparedBy: false }));
-                      }
-                    }}
-                    className={`w-full px-4 py-3 rounded-xl border bg-gray-50 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1080c2]/60 focus:border-[#1080c2] ${
-                      initialErrors.preparedBy ? "border-red-400" : "border-[#E5E7EB]"
-                    }`}
-                    placeholder="F.I.Sh. yoki tashkilot nomi"
-                  />
-                </div>
-              </div>
-            </div>
+            <InitialStep
+              initial={initial}
+              setInitial={setInitial}
+              climate={climate}
+              setClimate={setClimate}
+              initialErrors={initialErrors}
+              setInitialErrors={setInitialErrors}
+              heatingSeason={heatingSeason}
+              showProtectionInfo={showProtectionInfo}
+              setShowProtectionInfo={setShowProtectionInfo}
+              handleClimate={handleClimate}
+              projectData={projectData}
+              setProjectData={setProjectData}
+            />
           )}
 
           {currentStepId === "building_parameters" && (
@@ -1791,50 +1783,19 @@ export default function HeatWizard() {
               heatingSeason={heatingSeason}
               layers={layers}
               onExportPDF={handleExportCurrentStepPdf}
+              buildingParams={buildingParams}
+              setBuildingParams={setBuildingParams}
+              clearTempDefaults={clearTempDefaults}
             />
           )}
 
+          {/* Vaqtincha o'chirilgan
           {currentStepId === "normative_q" && (
             <NormativeQStep 
               objectName={initial.objectName}
               climate={climate}
               heatingSeason={heatingSeason}
               layers={layers}
-              onExportPDF={handleExportCurrentStepPdf}
-            />
-          )}
-
-          {currentStepId === "heat_calc_1" && (
-            <EnclosureStep
-              constructionType={constructionType}
-              setConstructionType={setConstructionType}
-              filteredConstructionTypes={filteredConstructionTypes}
-              ribHeightRatio={ribHeightRatio}
-              setRibHeightRatio={setRibHeightRatio}
-              showRibInfo={showRibInfo}
-              setShowRibInfo={setShowRibInfo}
-              derazaType={derazaType}
-              setDerazaType={setDerazaType}
-              hududLabel={hududLabel}
-              climate={climate}
-              heatingSeason={heatingSeason}
-              RoTalSG={RoTalSG}
-              RoTalED={RoTalED}
-              RoTalDF={RoTalDF}
-              Rk={Rk}
-              Ro_calc={Ro_calc}
-              RoResult={RoResult}
-              alphaI={alphaI}
-              alphaT={alphaT}
-              layers={layers}
-              updateLayer={updateLayer}
-              removeLayer={removeLayer}
-              setMaterialModal={setMaterialModal}
-              draggingLayerId={draggingLayerId}
-              setDraggingLayerId={setDraggingLayerId}
-              moveLayer={moveLayer}
-              addLayer={addLayer}
-              airLayer={airLayer}
               setAirLayer={setAirLayer}
               initial={initial}
               RoTalab={RoTalab}
@@ -1851,6 +1812,164 @@ export default function HeatWizard() {
               setSelectedWindowVariant2={setSelectedWindowVariant2}
               currentDisplayStep={currentDisplayStep}
             />
+          )}
+        */}
+
+          {currentStepId === "heat_calc_1" && (
+            <>
+              {currentDisplayStep?.presetConstructionType === "eshik_darvoza" ? (
+                <EshikDarvozaStep
+                  hududLabel={hududLabel}
+                  climate={climate}
+                  heatingSeason={heatingSeason}
+                  RoTalSG={RoTalSG}
+                  RoTalED={RoTalED}
+                  Rk={Rk}
+                  Ro_calc={Ro_calc}
+                  RoResult={RoResult}
+                  alphaI={alphaI}
+                  alphaT={alphaT}
+                  layers={layers}
+                  updateLayer={updateLayer}
+                  removeLayer={removeLayer}
+                  setMaterialModal={setMaterialModal}
+                  draggingLayerId={draggingLayerId}
+                  setDraggingLayerId={setDraggingLayerId}
+                  moveLayer={moveLayer}
+                  addLayer={addLayer}
+                  airLayer={airLayer}
+                  setAirLayer={setAirLayer}
+                  onExportPDF={handleExportCurrentStepPdf}
+                  stepNumber={currentDisplayStep?.label}
+                  totalSteps={displaySteps.length}
+                />
+              ) : currentDisplayStep?.presetConstructionType === "deraza_balkon_eshiklari" ? (
+                <DerazaBalkonStep
+                  hududLabel={hududLabel}
+                  climate={climate}
+                  heatingSeason={heatingSeason}
+                  RoTalSG={RoTalSG}
+                  RoTalED={RoTalED}
+                  RoTalDF={RoTalDF}
+                  Rk={Rk}
+                  Ro_calc={Ro_calc}
+                  RoResult={RoResult}
+                  alphaI={alphaI}
+                  alphaT={alphaT}
+                  derazaType={derazaType}
+                  setDerazaType={setDerazaType}
+                  protectionLevel={initial.protectionLevel}
+                  layers={layers}
+                  updateLayer={updateLayer}
+                  removeLayer={removeLayer}
+                  setMaterialModal={setMaterialModal}
+                  draggingLayerId={draggingLayerId}
+                  setDraggingLayerId={setDraggingLayerId}
+                  moveLayer={moveLayer}
+                  addLayer={addLayer}
+                  airLayer={airLayer}
+                  setAirLayer={setAirLayer}
+                  selectedWindowGroup={selectedWindowGroup}
+                  setSelectedWindowGroup={setSelectedWindowGroup}
+                  selectedWindowVariant={selectedWindowVariant}
+                  setSelectedWindowVariant={setSelectedWindowVariant}
+                  selectedWindowGroup2={selectedWindowGroup2}
+                  setSelectedWindowGroup2={setSelectedWindowGroup2}
+                  selectedWindowVariant2={selectedWindowVariant2}
+                  setSelectedWindowVariant2={setSelectedWindowVariant2}
+                  onExportPDF={handleExportCurrentStepPdf}
+                  stepNumber={currentDisplayStep?.label}
+                  totalSteps={displaySteps.length}
+                />
+              ) : currentDisplayStep?.presetConstructionType === "floor_heat_calculation" ? (
+                <FloorHeatCalculationStep
+                  layers={layers}
+                  setLayers={setLayers}
+                  updateLayer={updateLayer}
+                  removeLayer={removeLayer}
+                  setMaterialModal={setMaterialModal}
+                  draggingLayerId={draggingLayerId}
+                  setDraggingLayerId={setDraggingLayerId}
+                  moveLayer={moveLayer}
+                  addLayer={addLayer}
+                  airLayer={airLayer}
+                  setAirLayer={setAirLayer}
+                  hududLabel={hududLabel}
+                  climate={climate}
+                  heatingSeason={heatingSeason}
+                  RoTalSG={RoTalSG}
+                  RoTalab={RoTalab}
+                  RoResult={RoResult}
+                  Rk={Rk}
+                  Ro_calc={Ro_calc}
+                  alphaI={alphaI}
+                  alphaT={alphaT}
+                  deltaTtResult={deltaTtResult}
+                  initial={initial}
+                  showConstructionError={showConstructionError}
+                  showRibHeightError={showRibHeightError}
+                  showLayersError={showLayersError}
+                  onExportPDF={handleExportCurrentStepPdf}
+                  stepNumber={currentDisplayStep?.label}
+                  totalSteps={displaySteps.length}
+                  constructionType={constructionType}
+                  setConstructionType={setConstructionType}
+                  ribHeightRatio={ribHeightRatio}
+                  setRibHeightRatio={setRibHeightRatio}
+                />
+              ) : (
+                <EnclosureStep
+                  constructionType={constructionType}
+                  setConstructionType={setConstructionType}
+                  filteredConstructionTypes={filteredConstructionTypes}
+                  ribHeightRatio={ribHeightRatio}
+                  setRibHeightRatio={setRibHeightRatio}
+                  showRibInfo={showRibInfo}
+                  setShowRibInfo={setShowRibInfo}
+                  derazaType={derazaType}
+                  setDerazaType={setDerazaType}
+                  hududLabel={`${initial.province || ''} - ${initial.region || ''}`}
+                  climate={climate}
+                  heatingSeason={heatingSeason}
+                  RoTalSG={RoTalSG}
+                  RoTalED={RoTalED}
+                  RoTalDF={RoTalDF}
+                  Rk={Rk}
+                  Ro_calc={Ro_calc}
+                  RoResult={RoResult}
+                  alphaI={alphaI}
+                  alphaT={alphaT}
+                  layers={layers}
+                  updateLayer={updateLayer}
+                  removeLayer={removeLayer}
+                  setMaterialModal={setMaterialModal}
+                  draggingLayerId={draggingLayerId}
+                  setDraggingLayerId={setDraggingLayerId}
+                  moveLayer={moveLayer}
+                  addLayer={addLayer}
+                  airLayer={airLayer}
+                  setAirLayer={setAirLayer}
+                  initial={initial}
+                  RoTalab={RoTalab}
+                  deltaTtResult={deltaTtResult}
+                  showConstructionError={showConstructionError}
+                  showRibHeightError={showRibHeightError}
+                  selectedWindowGroup={selectedWindowGroup}
+                  setSelectedWindowGroup={setSelectedWindowGroup}
+                  selectedWindowVariant={selectedWindowVariant}
+                  setSelectedWindowVariant={setSelectedWindowVariant}
+                  selectedWindowGroup2={selectedWindowGroup2}
+                  setSelectedWindowGroup2={setSelectedWindowGroup2}
+                  selectedWindowVariant2={selectedWindowVariant2}
+                  setSelectedWindowVariant2={setSelectedWindowVariant2}
+                  showLayersError={showLayersError}
+                  showDerazaTypeError={showDerazaTypeError}
+                  onExportPDF={handleExportCurrentStepPdf}
+                  stepNumber={currentDisplayStep?.label}
+                  totalSteps={displaySteps.length}
+                />
+              )}
+            </>
           )}
 
           {currentStepId === "heat_calc_n" && (
@@ -1894,6 +2013,15 @@ export default function HeatWizard() {
           </div>
         )}
 
+        {/* 3-bosqichda (issiqlik texnik hisobi) "Keyingi bosqich" tugmasi */}
+        {currentStepId === "heat_calc_1" && (
+          <div className="mt-8 flex justify-center">
+            <WizardPrimaryButton className="px-8" onClick={goNext}>
+              Keyingi bosqich
+            </WizardPrimaryButton>
+          </div>
+        )}
+
         {/* 2-bosqichga o'tishda modul tanlash oynasi – global modal (overlay) */}
         {showNextStepChoice &&
           createPortal(
@@ -1901,171 +2029,260 @@ export default function HeatWizard() {
               <div className="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white shadow-xl p-5 space-y-4 text-sm text-gray-800" data-region-portal="true">
                 <div className="font-semibold text-gray-900">Keyingi modulni tanlang</div>
 
-                {/* Variantlar – 4 ta asosiy yo'nalish */}
+                {/* Variantlar – asosiy yo'nalishlar */}
                 <div className="space-y-3">
-                  <button
-                    type="button"
-                    className="w-full px-4 py-2 rounded-xl border border-[#1080c2]/70 text-[#1080c2] font-semibold hover:bg-[#1080c2]/5 text-left text-xs md:text-sm"
-                    onClick={() => {
-                      // Joriy stepni saqlash
-                      if (currentDisplayStep && currentDisplayStep.kind === "heat") {
-                        saveHeatStepState(currentDisplayStep.id);
-                      }
+                  {/* Devor - faqat Devor yo'q bo'lsa ko'rinadi */}
+                  {!heatSteps.some(step => {
+                    const ct = step.presetConstructionType || step.savedState?.constructionType;
+                    return ct === "tashqi_devor";
+                  }) && (
+                    <button
+                      type="button"
+                      className="w-full px-4 py-2 rounded-xl border border-[#1080c2]/70 text-[#1080c2] font-semibold hover:bg-[#1080c2]/5 text-left text-xs md:text-sm"
+                      onClick={() => {
+                        // Joriy stepni saqlash
+                        if (currentDisplayStep && currentDisplayStep.kind === "heat") {
+                          saveHeatStepState(currentDisplayStep.id);
+                        }
 
-                      // Umumiy to'suvchi konstruksiya uchun yangi issiqlik hisobi (2.n) ni boshlash
-                      const newIndex = heatSteps.length + 1;
-                      const newId = `heat-${Date.now()}`;
-                      const label = `2.${newIndex}`;
+                        // Devor uchun yangi issiqlik hisobi
+                        const newId = `heat-${Date.now()}`;
+                        const newStepIndex = 2 + heatSteps.length;
 
-                      setHeatSteps((prev) => [
-                        ...prev,
-                        { id: newId, kind: "heat", label, presetConstructionType: null },
-                      ]);
-                      setHeatCalcRunIndex(newIndex);
+                        setHeatSteps((prev) => [
+                          ...prev,
+                          { id: newId, kind: "heat", presetConstructionType: "tashqi_devor" },
+                        ]);
 
-                      // Yangi step uchun bo'sh holat
-                      setConstructionType("");
-                      setRibHeightRatio("");
-                      setLayers([
-                        { id: Date.now(), name: "Qurilish materialini tanlang", thickness_mm: "", rho: "", lambda: "", mu: 10 },
-                      ]);
-                      setAirLayer({ enabled: false, thickness_mm: "", layerTemp: "positive", foilBothSides: false });
+                        // Yangi step uchun bo'sh holat
+                        setConstructionType("tashqi_devor");
+                        setRibHeightRatio("");
+                        setLayers([
+                          { id: Date.now(), name: "Qurilish materialini tanlang", thickness_mm: "", rho: "", lambda: "", mu: 10 },
+                        ]);
+                        setAirLayer({ enabled: false, thickness_mm: "", layerTemp: "positive", foilBothSides: false });
 
-                      const newDisplaySteps = [
-                        { kind: "logical", id: "initial", label: "1" },
-                        ...heatSteps,
-                        { id: newId, kind: "heat", label, presetConstructionType: null },
-                        { kind: "logical", id: "normative_q", label: "3" },
-                      ];
-                      const targetIdx = newDisplaySteps.findIndex((s) => s.id === newId);
-                      if (targetIdx !== -1) setActiveIndex(targetIdx);
-                      setShowNextStepChoice(false);
-                    }}
-                  >
-                    To'suvchi konstruksiya bo'yicha issiqlik texnik hisob-kitobi
-                  </button>
+                        setActiveIndex(newStepIndex);
+                        setShowNextStepChoice(false);
+                      }}
+                    >
+                      Tashqi devor bo'yicha issiqlik texnik hisob-kitobi
+                    </button>
+                  )}
 
-                  <button
-                    type="button"
-                    className="w-full px-4 py-2 rounded-xl border border-[#1080c2]/70 text-[#1080c2] font-semibold hover:bg-[#1080c2]/5 text-left text-xs md:text-sm"
-                    onClick={() => {
-                      // Joriy stepni saqlash
-                      if (currentDisplayStep && currentDisplayStep.kind === "heat") {
-                        saveHeatStepState(currentDisplayStep.id);
-                      }
+                  {/* Ventfasad - faqat Ventfasad yo'q bo'lsa ko'rinadi */}
+                  {!heatSteps.some(step => {
+                    const ct = step.presetConstructionType || step.savedState?.constructionType;
+                    return ct === "tashqi_devor_ventfasad";
+                  }) && (
+                    <button
+                      type="button"
+                      className="w-full px-4 py-2 rounded-xl border border-[#1080c2]/70 text-[#1080c2] font-semibold hover:bg-[#1080c2]/5 text-left text-xs md:text-sm"
+                      onClick={() => {
+                        // Joriy stepni saqlash
+                        if (currentDisplayStep && currentDisplayStep.kind === "heat") {
+                          saveHeatStepState(currentDisplayStep.id);
+                        }
 
-                      // Deraza/balkon eshiklari uchun yangi issiqlik hisobi (2.n)
-                      const newIndex = heatSteps.length + 1;
-                      const newId = `heat-${Date.now()}`;
-                      const label = `2.${newIndex}`;
+                        // Ventfasad uchun yangi issiqlik hisobi
+                        const newId = `heat-${Date.now()}`;
+                        const newStepIndex = 2 + heatSteps.length;
 
-                      setHeatSteps((prev) => [
-                        ...prev,
-                        {
-                          id: newId,
-                          kind: "heat",
-                          label,
-                          presetConstructionType: "deraza_balkon_eshiklari",
-                        },
-                      ]);
-                      setHeatCalcRunIndex(newIndex);
+                        setHeatSteps((prev) => [
+                          ...prev,
+                          { id: newId, kind: "heat", presetConstructionType: "tashqi_devor_ventfasad" },
+                        ]);
 
-                      setConstructionType("deraza_balkon_eshiklari");
-                      setRibHeightRatio("");
-                      setLayers([
-                        { id: Date.now(), name: "Qurilish materialini tanlang", thickness_mm: "", rho: "", lambda: "", mu: 10 },
-                      ]);
-                      setAirLayer({ enabled: false, thickness_mm: "", layerTemp: "positive", foilBothSides: false });
+                        // Yangi step uchun bo'sh holat
+                        setConstructionType("tashqi_devor_ventfasad");
+                        setRibHeightRatio("");
+                        setLayers([
+                          { id: Date.now(), name: "Qurilish materialini tanlang", thickness_mm: "", rho: "", lambda: "", mu: 10 },
+                        ]);
+                        setAirLayer({ enabled: false, thickness_mm: "", layerTemp: "positive", foilBothSides: false });
 
-                      const newDisplaySteps = [
-                        { kind: "logical", id: "initial", label: "1" },
-                        ...heatSteps,
-                        {
-                          id: newId,
-                          kind: "heat",
-                          label,
-                          presetConstructionType: "deraza_balkon_eshiklari",
-                        },
-                        { kind: "logical", id: "normative_q", label: "3" },
-                      ];
-                      const targetIdx = newDisplaySteps.findIndex((s) => s.id === newId);
-                      if (targetIdx !== -1) setActiveIndex(targetIdx);
-                      setShowNextStepChoice(false);
-                    }}
-                  >
-                    Deraza va balkon eshiklari bo'yicha issiqlik texnik hisob-kitobi
-                  </button>
+                        setActiveIndex(newStepIndex);
+                        setShowNextStepChoice(false);
+                      }}
+                    >
+                      Ventfasad bo'yicha issiqlik texnik hisob-kitobi
+                    </button>
+                  )}
 
-                  <button
-                    type="button"
-                    className="w-full px-4 py-2 rounded-xl border border-[#1080c2]/70 text-[#1080c2] font-semibold hover:bg-[#1080c2]/5 text-left text-xs md:text-sm"
-                    onClick={() => {
-                      // Joriy stepni saqlash
-                      if (currentDisplayStep && currentDisplayStep.kind === "heat") {
-                        saveHeatStepState(currentDisplayStep.id);
-                      }
+                  {/* To'suvchi konstruksiya (boshqa turlar) - har doim ko'rinadi */}
+                  {!heatSteps.some(step => step.presetConstructionType === null) && (
+                    <button
+                      type="button"
+                      className="w-full px-4 py-2 rounded-xl border border-[#1080c2]/70 text-[#1080c2] font-semibold hover:bg-[#1080c2]/5 text-left text-xs md:text-sm"
+                      onClick={() => {
+                        // Joriy stepni saqlash
+                        if (currentDisplayStep && currentDisplayStep.kind === "heat") {
+                          saveHeatStepState(currentDisplayStep.id);
+                        }
 
-                      // Eshik/darvozalar uchun yangi issiqlik hisobi (2.n)
-                      const newIndex = heatSteps.length + 1;
-                      const newId = `heat-${Date.now()}`;
-                      const label = `2.${newIndex}`;
+                        // Umumiy to'suvchi konstruksiya uchun yangi issiqlik hisobi
+                        const newId = `heat-${Date.now()}`;
+                        const newStepIndex = 2 + heatSteps.length;
 
-                      setHeatSteps((prev) => [
-                        ...prev,
-                        {
-                          id: newId,
-                          kind: "heat",
-                          label,
-                          presetConstructionType: "eshik_darvoza",
-                        },
-                      ]);
-                      setHeatCalcRunIndex(newIndex);
+                        setHeatSteps((prev) => [
+                          ...prev,
+                          { id: newId, kind: "heat", presetConstructionType: null },
+                        ]);
 
-                      setConstructionType("eshik_darvoza");
-                      setRibHeightRatio("");
-                      setLayers([
-                        { id: Date.now(), name: "Qurilish materialini tanlang", thickness_mm: "", rho: "", lambda: "", mu: 10 },
-                      ]);
-                      setAirLayer({ enabled: false, thickness_mm: "", layerTemp: "positive", foilBothSides: false });
+                        // Yangi step uchun bo'sh holat
+                        setConstructionType("");
+                        setRibHeightRatio("");
+                        setLayers([
+                          { id: Date.now(), name: "Qurilish materialini tanlang", thickness_mm: "", rho: "", lambda: "", mu: 10 },
+                        ]);
+                        setAirLayer({ enabled: false, thickness_mm: "", layerTemp: "positive", foilBothSides: false });
 
-                      const newDisplaySteps = [
-                        { kind: "logical", id: "initial", label: "1" },
-                        ...heatSteps,
-                        {
-                          id: newId,
-                          kind: "heat",
-                          label,
-                          presetConstructionType: "eshik_darvoza",
-                        },
-                        { kind: "logical", id: "normative_q", label: "3" },
-                      ];
-                      const targetIdx = newDisplaySteps.findIndex((s) => s.id === newId);
-                      if (targetIdx !== -1) setActiveIndex(targetIdx);
-                      setShowNextStepChoice(false);
-                    }}
-                  >
-                    Eshik va darvozalar bo'yicha issiqlik texnik hisob-kitobi
-                  </button>
+                        setActiveIndex(newStepIndex);
+                        setShowNextStepChoice(false);
+                      }}
+                    >
+                      Boshqa to'suvchi konstruksiya bo'yicha issiqlik texnik hisob-kitobi
+                    </button>
+                  )}
 
-                  <button
-                    type="button"
-                    className="w-full px-4 py-2 rounded-xl border border-gray-300 text-gray-800 font-semibold hover:bg-gray-50 text-left text-xs md:text-sm"
-                    onClick={() => {
-                      if (!hasHeatCalcVisited) {
-                        window.alert(
-                          "Avval to'suvchi konstruksiyalar bo'yicha issiqlik texnik hisob-kitoblarini kamida bir marta bajaring",
-                        );
-                        return;
-                      }
-                      const targetIdx = STEPS.findIndex((s) => s.id === "normative_q");
-                      if (targetIdx !== -1) {
-                        setActiveIndex(targetIdx);
-                      }
-                      setShowNextStepChoice(false);
-                    }}
-                  >
-                    Isitishga me'yoriy solishtirma issiqlik sarfi hisobi
-                  </button>
+                  {/* Oyna, eshik va pol tugmalari - faqat to'suvchi konstruksiya hisobi bajarilganda ko'rinadi */}
+                  {(() => {
+                    const hasEnclosureCalculation = heatSteps.some(step => 
+                      step.presetConstructionType !== "eshik_darvoza" && 
+                      step.presetConstructionType !== "deraza_balkon_eshiklari" &&
+                      step.presetConstructionType !== "floor_heat_calculation"
+                    );
+                    console.log("🔍 Modal: heatSteps =", heatSteps);
+                    console.log("🔍 Modal: hasEnclosureCalculation =", hasEnclosureCalculation);
+                    return hasEnclosureCalculation;
+                  })() && (
+                    <>
+                      {!heatSteps.some(step => step.presetConstructionType === "deraza_balkon_eshiklari") && (
+                        <button
+                          type="button"
+                          className="w-full px-4 py-2 rounded-xl border border-[#1080c2]/70 text-[#1080c2] font-semibold hover:bg-[#1080c2]/5 text-left text-xs md:text-sm"
+                          onClick={() => {
+                            // Joriy stepni saqlash
+                            if (currentDisplayStep && currentDisplayStep.kind === "heat") {
+                              saveHeatStepState(currentDisplayStep.id);
+                            }
+
+                            // Deraza/balkon eshiklari uchun yangi issiqlik hisobi
+                            const newId = `heat-${Date.now()}`;
+                            const newStepIndex = 2 + heatSteps.length; // 0:initial, 1:building, 2+: heat steps
+
+                            setHeatSteps((prev) => [
+                              ...prev,
+                              {
+                                id: newId,
+                                kind: "heat",
+                                presetConstructionType: "deraza_balkon_eshiklari",
+                              },
+                            ]);
+                            
+                            setActiveIndex(newStepIndex);
+                            setShowNextStepChoice(false);
+                          }}
+                        >
+                          Deraza va balkon eshiklari bo'yicha issiqlik texnik hisob-kitobi
+                        </button>
+                      )}
+
+                      {!heatSteps.some(step => step.presetConstructionType === "eshik_darvoza") && (
+                        <button
+                          type="button"
+                          className="w-full px-4 py-2 rounded-xl border border-[#1080c2]/70 text-[#1080c2] font-semibold hover:bg-[#1080c2]/5 text-left text-xs md:text-sm"
+                          onClick={() => {
+                            // Joriy stepni saqlash
+                            if (currentDisplayStep && currentDisplayStep.kind === "heat") {
+                              saveHeatStepState(currentDisplayStep.id);
+                            }
+
+                            // Eshik/darvozalar uchun yangi issiqlik hisobi
+                            const newId = `heat-${Date.now()}`;
+                            const newStepIndex = 2 + heatSteps.length; // 0:initial, 1:building, 2+: heat steps
+
+                            setHeatSteps((prev) => [
+                              ...prev,
+                              {
+                                id: newId,
+                                kind: "heat",
+                                presetConstructionType: "eshik_darvoza",
+                              },
+                            ]);
+                            
+                            setActiveIndex(newStepIndex);
+                            setShowNextStepChoice(false);
+                          }}
+                        >
+                          Eshik va darvozalar bo'yicha issiqlik texnik hisob-kitobi
+                        </button>
+                      )}
+
+                      {!heatSteps.some(step => step.presetConstructionType === "floor_heat_calculation") && (
+                        <button
+                          type="button"
+                          className="w-full px-4 py-2 rounded-xl border border-[#1080c2]/70 text-[#1080c2] font-semibold hover:bg-[#1080c2]/5 text-left text-xs md:text-sm"
+                          onClick={() => {
+                            // Joriy stepni saqlash
+                            if (currentDisplayStep && currentDisplayStep.kind === "heat") {
+                              saveHeatStepState(currentDisplayStep.id);
+                            }
+
+                            // Yerdagi pol uchun yangi issiqlik hisobi
+                            const newId = `heat-${Date.now()}`;
+                            const newStepIndex = 2 + heatSteps.length; // 0:initial, 1:building, 2+: heat steps
+
+                            setHeatSteps((prev) => [
+                              ...prev,
+                              {
+                                id: newId,
+                                kind: "heat",
+                                presetConstructionType: "floor_heat_calculation",
+                              },
+                            ]);
+                            
+                            setActiveIndex(newStepIndex);
+                            setShowNextStepChoice(false);
+                          }}
+                        >
+                          Yerdagi pol bo'yicha issiqlik texnik hisob-kitobi
+                        </button>
+                      )}
+                    </>
+                  )}
+
+                  {/* Vaqtincha o'chirilgan: Isitishga me'yoriy solishtirma issiqlik sarfi hisobi */}
+                  {/* 
+                  {(() => {
+                    const hasEnclosureCalculation = heatSteps.some(step => 
+                      step.presetConstructionType !== "eshik_darvoza" && 
+                      step.presetConstructionType !== "deraza_balkon_eshiklari" &&
+                      step.presetConstructionType !== "floor_heat_calculation"
+                    );
+                    return hasEnclosureCalculation;
+                  })() && (
+                    <button
+                      type="button"
+                      className="w-full px-4 py-2 rounded-xl border border-gray-300 text-gray-800 font-semibold hover:bg-gray-50 text-left text-xs md:text-sm"
+                      onClick={() => {
+                        if (!hasHeatCalcVisited) {
+                          window.alert(
+                            "Avval to'suvchi konstruksiyalar bo'yicha issiqlik texnik hisob-kitoblarini kamida bir marta bajaring",
+                          );
+                          return;
+                        }
+                        const targetIdx = STEPS.findIndex((s) => s.id === "normative_q");
+                        if (targetIdx !== -1) {
+                          setActiveIndex(targetIdx);
+                        }
+                        setShowNextStepChoice(false);
+                      }}
+                    >
+                      Isitishga me'yoriy solishtirma issiqlik sarfi hisobi
+                    </button>
+                  )}
+                  */}
                 </div>
 
                 <div className="flex justify-end pt-1">
@@ -2097,11 +2314,13 @@ export default function HeatWizard() {
                 let lambda = l.lambda;
                 let mu = l.mu;
                 let rho = l.rho;
+                let s = l.s;
                 if (v) {
                   const pickedLambda = pickLambdaForVariant(v);
                   if (pickedLambda != null) lambda = pickedLambda;
                   if (typeof v.mu === "number") mu = v.mu;
                   if (v.density != null || v.zichlik != null) rho = v.density ?? v.zichlik;
+                  if (v.s != null) s = v.s;
                 }
 
                 return {
@@ -2112,6 +2331,7 @@ export default function HeatWizard() {
                   lambda: lambda !== undefined && lambda !== null && lambda !== "" ? Number(lambda) : l.lambda,
                   mu,
                   rho,
+                  s,
                 };
               }),
             );

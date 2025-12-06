@@ -6,9 +6,10 @@ import { AirLayerControls, ConstructionIndicatorsPanel, ConstructionResultSummar
 import { EshikDarvozaStep } from "./EshikDarvozaStep";
 import { DerazaBalkonStep } from "./DerazaBalkonStep";
 import { RibHeightInfoModal } from "./InfoModals";
+import { getHumidityRegime } from "../data/heatCalculations";
 
-// To'suvchi konstruksiya (heat_calc_1) bosqichi uchun alohida komponent
-export function EnclosureStep({
+// Yerdagi pol (floor_heat_calculation) bosqichi uchun komponent (EnclosureStep dan nusxa olingan)
+export function FloorHeatCalculationStep({
   layers,
   setLayers,
   onExportPDF,
@@ -65,6 +66,14 @@ export function EnclosureStep({
 
   // Hozirgi konstruksiya turini aniqlash
   const currentConstructionType = constructionType;
+
+  // Namlik rejimi bo'yicha shartni aniqlash (A yoki B)
+  // Quruq va Normal -> A
+  // Nam va Ho'l -> B
+  const regime = climate && climate.t_in != null && climate.phi_in != null 
+    ? getHumidityRegime(climate.t_in, climate.phi_in) 
+    : "normal";
+  const humidityCondition = (regime === "quruq" || regime === "normal") ? "A" : "B";
 
   return (
     <div className="space-y-6 text-sm text-gray-700">
@@ -144,48 +153,8 @@ export function EnclosureStep({
           <div className="border-t border-dashed border-gray-200 my-4" />
 
           <div >
-            {/* 1-qism: Konstruksiya turi va h/a */}
-            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 pb-6">
-              <div className="w-full py-0">
-                <label className="block text-base font-semibold text-gray-900 mb-2">Konstruksiya turi</label>
-                <CustomSelect
-                  value={constructionType}
-                  onChange={(val) => setConstructionType(val)}
-                  error={showConstructionError}
-                  placeholder="Tanlang"
-                  options={filteredConstructionTypes}
-                />
-              </div>
-
-              {currentConstructionType &&
-                currentConstructionType !== "tashqi_devor" &&
-                currentConstructionType !== "tashqi_devor_ventfasad" && (
-                  <div className="w-full md:basis-1/3">
-                    <label className="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                      <span>Qovurg'a balandligi nisbati, h/a</span>
-                      <button
-                        type="button"
-                        className="w-4 h-4 flex items-center justify-center rounded-full border border-gray-400 text-[10px] text-gray-600 hover:bg-gray-100"
-                        onClick={() => setShowRibInfo(true)}
-                        aria-label="Qovurg'a balandligi nisbati haqida eslatma"
-                      >
-                        ?
-                      </button>
-                    </label>
-                    <CustomSelect
-                      value={ribHeightRatio}
-                      onChange={(val) => setRibHeightRatio(val)}
-                      placeholder="h/a nisbatini tanlang"
-                      options={[
-                        { value: "low", label: "h/a ≤ 0.3" },
-                        { value: "high", label: "h/a > 0.3" },
-                      ]}
-                      error={showRibHeightError}
-                    />
-                  </div>
-                )}
-            </div>
-
+            {/* Konstruksiya turi tanlovi olib tashlandi */}
+            
             {/* 2-qism: Materiallar jadvali va havo qatlami */}
             <div>
               <MaterialLayersTable
@@ -196,6 +165,8 @@ export function EnclosureStep({
                 draggingLayerId={draggingLayerId}
                 setDraggingLayerId={setDraggingLayerId}
                 moveLayer={moveLayer}
+                showSColumn={true}
+                humidityCondition={humidityCondition}
               />
 
               <div className="mt-4 flex flex-col gap-4">

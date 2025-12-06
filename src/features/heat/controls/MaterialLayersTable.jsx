@@ -21,6 +21,8 @@ export function MaterialLayersTable({
   draggingLayerId,
   setDraggingLayerId,
   moveLayer,
+  showSColumn = false,
+  humidityCondition = "A", // Default "A" (quruq/normal)
 }) {
   return (
     <div>
@@ -72,6 +74,13 @@ export function MaterialLayersTable({
                   Termik qarshilik <span className="text-[#1080c2]">R</span>
                 </div>
               </th>
+              {showSColumn && (
+                <th className="py-2 px-2 text-center leading-tight">
+                  <div>
+                    Issiqlik o'zl.rish <span className="text-[#1080c2]">S</span>
+                  </div>
+                </th>
+              )}
               <th className="py-2 px-3 text-center leading-tight">
                 <div>Amal</div>
               </th>
@@ -143,6 +152,20 @@ export function MaterialLayersTable({
                       {R > 0 ? R.toFixed(3) : ""}
                     </span>
                   </td>
+                  {showSColumn && (
+                    <td className="py-2 pr-4 text-center">
+                      <span className="inline-block min-w-[4.5rem] text-center">
+                        {(() => {
+                           if (L.s == null || L.s === "") return "";
+                           if (typeof L.s === 'object') {
+                             const val = L.s[humidityCondition] ?? L.s.A;
+                             return val != null ? Number(val).toFixed(2) : "";
+                           }
+                           return Number(L.s).toFixed(2);
+                        })()}
+                      </span>
+                    </td>
+                  )}
                   <td className="py-2 pr-4 text-center">
                     <button
                       onClick={() => removeLayer(L.id)}
