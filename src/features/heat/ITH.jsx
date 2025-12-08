@@ -235,7 +235,7 @@ export default function IssiqlikTexnikHisob() {
     return null;
   }, [constructionType, ribHeightRatio]);
 
-  // To'suvchi konstruksiyalarning tashqi yuzasining issiqlik berish koeffitsienti, α_t (QMQ 2.01.04-18, 6-jadval)
+  // To'suvchi konstruksiyalarning tashqi yuzasining issiqlik berish koeffitsienti, α_t (SHNQ 2.01.04-2018, 6-jadval)
   const alphaT = useMemo(() => {
     const id = mapConstructionTypeToId(constructionType);
     if (!id) return null;

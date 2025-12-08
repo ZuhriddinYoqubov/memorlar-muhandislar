@@ -159,7 +159,7 @@ export function DerazaBalkonStep({
                             </span>
                         </p>
                         <p className="text-xs text-gray-500 italic mt-1">
-                            QMQ 2.01.04-18, Issiqlik himoyasi darajasi va D<sub className="text-[0.6em]">is.dav</sub> ga bog'liq holda jadvaldan olinadi.
+                            SHNQ 2.01.04-2018, Issiqlik himoyasi darajasi va D<sub className="text-[0.6em]">is.dav</sub> ga bog'liq holda jadvaldan olinadi.
                         </p>
                     </div>
                 )}

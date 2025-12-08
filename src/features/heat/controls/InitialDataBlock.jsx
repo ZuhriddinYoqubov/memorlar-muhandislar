@@ -65,7 +65,7 @@ export function InitialDataBlock({ hududLabel, climate = {}, heatingSeason = {},
               </div>
               {humidityInfo && humidityInfo.regime && (
                 <p className="text-xs text-gray-500 italic mt-1">
-                  QMQ 2.01.04-18, 1-jadval bo'yicha xona ichidagi havo harorati {humidityInfo.tempRangeLabel} va 
+                  SHNQ 2.01.04-2018, 1-jadval bo'yicha xona ichidagi havo harorati {humidityInfo.tempRangeLabel} va 
                   namligi {humidityInfo.humidityBounds} bo'lganda namlik rejimi "<span className="font-semibold text-gray-700">{humidityInfo.regime}</span>" hisoblanadi.
                 </p>
               )}

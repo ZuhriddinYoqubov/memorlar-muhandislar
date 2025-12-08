@@ -22,7 +22,9 @@ export function MaterialLayersTable({
   setDraggingLayerId,
   moveLayer,
   showSColumn = false,
+  showDColumn = false,
   humidityCondition = "A", // Default "A" (quruq/normal)
+  thicknessInputWidth,
 }) {
   return (
     <div>
@@ -33,51 +35,61 @@ export function MaterialLayersTable({
       <div className="overflow-x-auto rounded-xl border border-[#E5E7EB]">
         <table className="min-w-full text-xs md:text-sm">
           <thead>
-            <tr className="text-gray-600 bg-gray-50">
+            <tr className="text-gray-600 bg-gray-50 font-medium">
               <th className="py-2 px-3 text-center">#</th>
               <th className="py-2 px-3 text-left w-4/5">
                 <div className="flex items-center gap-3">
                   <div className="leading-tight">
                     <div>
                       Material
-                      <span className="ml-2 italic font-normal">(Tashqaridan ichkariga)</span>
+                      <span className="text-xs italic font-normal">(Tashqaridan ichkariga)</span>
                     </div>
                   </div>
                 </div>
               </th>
               <th className="py-2 px-3 text-center leading-tight">
                 <div>
-                  <span>
-                    Qalinlik <span className="text-[#1080c2]">δ</span>
-                  </span>
-                  <br />
-                  <span>mm</span>
+                  Qalinlik<br />
+                  <span>mm</span><br />
+                  <span className="text-[#1080c2]">δ</span>
                 </div>
               </th>
               <th className="py-2 px-2 text-center leading-tight">
                 <div>
-                  Zichlik <span className="text-[#1080c2]">
-                    γ
+                  Zichlik<br />
+                  kg/m³<br />
+                  <span className="text-[#1080c2]">
+                    γ<sub className="align-baseline text-[0.7em]">o</sub>
                   </span>
-                  <sub className="align-baseline text-[0.7em] text-[#1080c2]">0</sub>, kg/m³
                 </div>
               </th>
               <th className="py-2 px-3 text-center leading-tight">
                 <div>
-                  Issiqlik o'tk.lik <span className="text-[#1080c2]">
+                  Issiqlik o'tk.lik<br />
+                  <span className="text-[#1080c2]">
                     λ
                   </span>
                 </div>
               </th>
               <th className="py-2 px-2 text-center leading-tight">
                 <div>
-                  Termik qarshilik <span className="text-[#1080c2]">R</span>
+                  Termik qarshilik<br />
+                  <span className="text-[#1080c2]">R</span>
                 </div>
               </th>
               {showSColumn && (
                 <th className="py-2 px-2 text-center leading-tight">
                   <div>
-                    Issiqlik o'zl.rish <span className="text-[#1080c2]">S</span>
+                    Issiqlik o'zl.rish<br />
+                    <span className="text-[#1080c2]">S</span>
+                  </div>
+                </th>
+              )}
+              {showDColumn && (
+                <th className="py-2 px-2 text-center leading-tight">
+                  <div>
+                    Issiqlik inersiyasi<br />
+                    <span className="text-[#1080c2]">D</span>
                   </div>
                 </th>
               )}
@@ -134,12 +146,12 @@ export function MaterialLayersTable({
                       type="number"
                       value={L.thickness_mm}
                       onChange={(e) => updateLayer(L.id, "thickness_mm", e.target.value)}
-                      className="w-28 px-3 py-2 rounded-lg border border-[#E5E7EB] bg-gray-50 text-right"
+                      className={`px-3 py-2 rounded-lg border border-[#E5E7EB] bg-gray-50 text-right ${thicknessInputWidth || "w-20"}`}
                     />
                   </td>
                   <td className="py-2 pr-4 text-center">
                     <span className="inline-block min-w-[4.5rem] text-center">
-                      {L.rho != null && L.rho !== "" ? Number(L.rho) : ""}
+                      {L.rho != null && L.rho !== "" ? Number(L.rho) : "" ? Number(L.rho).toFixed(0): ""}
                     </span>
                   </td>
                   <td className="py-2 pr-4 text-center">
@@ -159,9 +171,27 @@ export function MaterialLayersTable({
                            if (L.s == null || L.s === "") return "";
                            if (typeof L.s === 'object') {
                              const val = L.s[humidityCondition] ?? L.s.A;
-                             return val != null ? Number(val).toFixed(2) : "";
+                             return val != null ? Number(val).toFixed(3) : "";
                            }
-                           return Number(L.s).toFixed(2);
+                           return Number(L.s).toFixed(3);
+                        })()}
+                      </span>
+                    </td>
+                  )}
+                  {showDColumn && (
+                    <td className="py-2 pr-4 text-center">
+                      <span className="inline-block min-w-[3rem] text-center">
+                        {(() => {
+                           let s_val = 0;
+                           if (L.s != null && L.s !== "") {
+                             if (typeof L.s === 'object') {
+                               s_val = Number(L.s[humidityCondition] ?? L.s.A ?? 0);
+                             } else {
+                               s_val = Number(L.s);
+                             }
+                           }
+                           const D = R * s_val;
+                           return D > 0 ? D.toFixed(3) : "";
                         })()}
                       </span>
                     </td>
@@ -170,11 +200,11 @@ export function MaterialLayersTable({
                     <button
                       onClick={() => removeLayer(L.id)}
                       aria-label="O'chirish"
-                      className="p-2 rounded-lg border text-red-600 border-red-300 hover:bg-red-50 inline-flex items-center justify-center"
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors inline-flex items-center justify-center"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className="w-5 h-5"
+                        className="w-4 h-4"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"

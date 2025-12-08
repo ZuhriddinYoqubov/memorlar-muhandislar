@@ -102,7 +102,7 @@ export function EshikDarvozaStep({
           </span>
         </p>
         <p className="text-xs text-gray-500 italic mt-1">
-          Eshik va darvozalar issiqlik uzatilishiga talab etilgan qarshiligi devorlarning sanitariya-gigena talablariga javob beradigan qarshiligining kamida 0,6 qismidan kam bo'lmasligi kerak (QMQ 2.01.04-18, 2.2).
+          Eshik va darvozalar issiqlik uzatilishiga talab etilgan qarshiligi devorlarning sanitariya-gigena talablariga javob beradigan qarshiligining kamida 0,6 qismidan kam bo'lmasligi kerak (SHNQ 2.01.04-2018, 2.2).
         </p>
       </div>
 

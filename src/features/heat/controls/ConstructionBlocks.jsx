@@ -23,40 +23,43 @@ export function ConstructionMaterialsCardSkeleton() {
       <h2 className="text-lg md:text-xl font-semibold text-gray-900 mb-4">
         To'suvchi konstruksiya materiallarining xususiyatlari
       </h2>
-     
+
       <div className="overflow-x-auto rounded-xl border border-[#E5E7EB]">
         <table className="min-w-full text-xs md:text-sm">
           <thead>
-            <tr className="text-gray-600 bg-gray-50">
+            <tr className="text-gray-600 bg-gray-50 font-medium">
               <th className="py-2 px-3 text-center">#</th>
               <th className="py-2 px-3 text-left">
-                <div className="flex items-center gap-3">
-                  <div className="leading-tight">
-                    <div>
-                      Material
-                      <span className="ml-2 italic font-normal">(Tashqaridan ichkariga)</span>
-                    </div>
-                  </div>
+                <div className="leading-tight">
+                  Material
+                  <span className="text-xs italic font-normal">(Tashqaridan ichkariga)</span>
                 </div>
               </th>
               <th className="py-2 px-3 text-center leading-tight">
                 <div>
-                  Qalinlik <span className="text-[#1080c2]">δ</span>, mm
+                  Qalinlik<br />
+                  mm<br />
+                  <span className="text-[#1080c2]">δ</span>
+                </div>
+              </th>
+              <th className="py-2 px-3 text-center leading-tight font-medium">
+                <div>
+                  Zichlik<br />
+                  kg/m³<br />
+                  <span className="text-[#1080c2]">γ<sub className="align-baseline text-[0.7em]">o</sub></span>
                 </div>
               </th>
               <th className="py-2 px-3 text-center leading-tight">
                 <div>
-                  Zichlik <span className="text-[#1080c2]">γ</span>
-                  <sub className="align-baseline text-[0.7em] text-[#1080c2]">0</sub>, kg/m³
+                  Issiqlik o'tkazuvchanlik<br />
+                  <span className="text-[#1080c2]">λ</span>
                 </div>
               </th>
               <th className="py-2 px-3 text-center leading-tight">
                 <div>
-                  Issiqlik o'tkazuvchanlik <span className="text-[#1080c2]">λ</span>
+                  Termik qarshilik<br />
+                  <span className="text-[#1080c2]">R</span>
                 </div>
-              </th>
-              <th className="py-2 px-3 text-center leading-tight">
-                <div className="whitespace-nowrap">Termik qarshilik R</div>
               </th>
             </tr>
           </thead>
@@ -116,9 +119,8 @@ export function AirLayerControls({ airLayer, onChange, showTopBorder = true }) {
 
   return (
     <div
-      className={`mt-2 space-y-3 ${
-        showTopBorder ? "border-t border-dashed border-gray-200 pt-4" : "pt-2"
-      }`}
+      className={`mt-2 space-y-3 ${showTopBorder ? "border-t border-dashed border-gray-200 pt-4" : "pt-2"
+        }`}
     >
       <label className="inline-flex items-center gap-2 text-sm font-medium text-gray-800">
         <input
@@ -215,8 +217,8 @@ export function ConstructionIndicatorsPanel({
   ribHeightRatio,
 }) {
   // Izoh helper - row qiymatlarini olish
-  const alphaIRow = constructionType === "tashqi_devor" || constructionType === "tashqi_devor_ventfasad" || constructionType === "eshik_darvoza" 
-    ? 1 
+  const alphaIRow = constructionType === "tashqi_devor" || constructionType === "tashqi_devor_ventfasad" || constructionType === "eshik_darvoza"
+    ? 1
     : (ribHeightRatio === "low" ? 1 : (ribHeightRatio === "high" ? 2 : null));
 
   return (

@@ -191,7 +191,7 @@ const HeatPdfDocument = ({ initial, climate, heatingSeason, heatStep, constructi
                   <Text style={[pdfStyles.tableCell, { flex: 2, fontWeight: 'bold' }]}>Material</Text>
                   <Text style={[pdfStyles.tableCell, { flex: 0.7 }]}>
                     <Text style={[pdfStyles.mathText, {color: 'black'}]}>δ</Text>, mm
-                  </Text>                                                                                   
+                  </Text>
                   <Text style={[pdfStyles.tableCell, { flex: 0.7 }]}>
                     <Text style={[pdfStyles.mathText, {color: 'black'}]}>γ</Text>, kg/m³
                   </Text>

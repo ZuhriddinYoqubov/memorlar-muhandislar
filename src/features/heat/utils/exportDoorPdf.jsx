@@ -235,9 +235,9 @@ const DoorPdfDocument = ({ initial, climate, heatingSeason, heatStep, RoTalSG })
               <View style={pdfStyles.table}>
                 <View style={pdfStyles.tableHeader}>
                   <Text style={[pdfStyles.tableCell, { flex: 0.3 }]}>#</Text>
-                  <Text style={[pdfStyles.tableCell, { flex: 2, fontWeight: 'bold' }]}>Material</Text>
+                  <Text style={[pdfStyles.tableCell, { flex: 2, fontWeight: 'bold' }]}>Material mm,</Text>
                   <Text style={[pdfStyles.tableCell, { flex: 0.7 }]}>
-                    <Text style={[pdfStyles.mathText, { color: 'black' }]}>δ</Text>, mm
+                    <Text style={[pdfStyles.mathText, { color: 'black' }]}>δ</Text>
                   </Text>
                   <Text style={[pdfStyles.tableCell, { flex: 0.7 }]}>
                     <Text style={[pdfStyles.mathText, { color: 'black' }]}>γ</Text>, kg/m³
@@ -278,7 +278,7 @@ const DoorPdfDocument = ({ initial, climate, heatingSeason, heatStep, RoTalSG })
             </View>
           </View>
           <Text style={pdfStyles.note}>
-            Sanitariya-gigena talablariga ko'ra devorlarning issiqlik uzatilishiga qarshiligi (QMQ 2.01.04-18). {safeInitial.province}, {safeInitial.regionName || 'Tuman/Shahar'} uchun.
+            Sanitariya-gigena talablariga ko'ra devorlarning issiqlik uzatilishiga qarshiligi (SHNQ 2.01.04-2018). {safeInitial.province}, {safeInitial.regionName || 'Tuman/Shahar'} uchun.
           </Text>
 
           {/* RoTalED */}
@@ -296,7 +296,7 @@ const DoorPdfDocument = ({ initial, climate, heatingSeason, heatStep, RoTalSG })
             </View>
           )}
           <Text style={pdfStyles.note}>
-            Eshik va darvozalar issiqlik uzatilishiga talab etilgan qarshiligi devorlarning sanitariya-gigena talablariga javob beradigan qarshiligining kamida 0,6 qismidan kam bo'lmasligi kerak (QMQ 2.01.04-18, 2.2).
+            Eshik va darvozalar issiqlik uzatilishiga talab etilgan qarshiligi devorlarning sanitariya-gigena talablariga javob beradigan qarshiligining kamida 0,6 qismidan kam bo'lmasligi kerak (SHNQ 2.01.04-2018, 2.2).
           </Text>
 
           {/* R_k */}

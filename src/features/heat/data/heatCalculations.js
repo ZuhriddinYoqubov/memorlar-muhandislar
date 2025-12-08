@@ -89,7 +89,7 @@ export function mapObjectTypeToDeltaCategory(objType) {
 }
 
 /**
- * QMQ 2.01.04-18, 1-jadval asosida namlik rejimini aniqlash
+ * SHNQ 2.01.04-2018, 1-jadval asosida namlik rejimini aniqlash
  * Ichki havo harorati (t_in) va namligi (phi_in) bo'yicha rejimni qaytaradi
  * 
  * 1-jadval: Binolar xonalarining namlik rejimi
@@ -337,16 +337,16 @@ export function getRoTalForDerazaFonar({ protectionLevel, objectType, D_is_dav, 
 
 /**
  * φᵢ (ichki havo namligi) uchun izoh
- * QMQ 2.01.04-18, 1-jadval asosida
+ * SHNQ 2.01.04-2018, 1-jadval asosida
  * @param {object} humidityRegimeInfo - getHumidityRegimeInfo(t_in, phi_in) dan olingan ma'lumot
  * @param {number} phi_in - ichki namlik qiymati
  */
 export function getPhiNote(humidityRegimeInfo, phi_in) {
   const info = humidityRegimeInfo;
   if (info && info.regime && info.tempRangeLabel) {
-    return `QMQ 2.01.04-18, 1-jadval bo'yicha xona ichidagi havo harorati ${info.tempRangeLabel} va namligi ${phi_in != null ? phi_in + '%' : info.humidityBounds} bo'lganda namlik rejimi "${info.regime}" hisoblanadi.`;
+    return `SHNQ 2.01.04-2018, 1-jadval bo'yicha xona ichidagi havo harorati ${info.tempRangeLabel} va namligi ${phi_in != null ? phi_in + '%' : info.humidityBounds} bo'lganda namlik rejimi "${info.regime}" hisoblanadi.`;
   }
-  return `QMQ 2.01.04-18 "Qurilish issiqlik texnikasi", 1-jadval bo'yicha namlik rejimi aniqlanadi.`;
+  return `SHNQ 2.01.04-2018 "Qurilish issiqlik texnikasi", 1-jadval bo'yicha namlik rejimi aniqlanadi.`;
 }
 
 /**
@@ -379,7 +379,7 @@ export function getTOutNote() {
  */
 export function getDeltaTtNote(row) {
   if (row != null) {
-    return `QMQ 2.01.04-18 "Qurilish issiqlik texnikasi", 4-jadval`;
+    return `SHNQ 2.01.04-2018 "Qurilish issiqlik texnikasi", 4-jadval`;
   }
   return null;
 }
@@ -390,7 +390,7 @@ export function getDeltaTtNote(row) {
  */
 export function getAlphaINote(row) {
   if (row != null) {
-    return `QMQ 2.01.04-18 "Qurilish issiqlik texnikasi", 5-jadval`;
+    return `SHNQ 2.01.04-2018 "Qurilish issiqlik texnikasi", 5-jadval`;
   }
   return null;
 }
@@ -401,7 +401,7 @@ export function getAlphaINote(row) {
  */
 export function getAlphaTNote(row) {
   if (row != null) {
-    return `QMQ 2.01.04-18 "Qurilish issiqlik texnikasi", 6-jadval`;
+    return `SHNQ 2.01.04-2018 "Qurilish issiqlik texnikasi", 6-jadval`;
   }
   return null;
 }
@@ -443,7 +443,7 @@ export function getRoTalSGNote(params) {
  */
 export function getRoTalNote(row, protectionLevel) {
   if (row != null) {
-    return `QMQ 2.01.04-18 "Qurilish issiqlik texnikasi", 2b jadval, ${row}-band, issiqlik himoyasining ${protectionLevel || "II"} darajasi`;
+    return `SHNQ 2.01.04-2018 "Qurilish issiqlik texnikasi", 2b jadval, ${row}-band, issiqlik himoyasining ${protectionLevel || "II"} darajasi`;
   }
   return null;
 }

@@ -196,7 +196,7 @@ const WindowPdfDocument = ({ initial, climate, heatingSeason, heatStep }) => {
 
           )}
           <Text style={pdfStyles.note}>
-            QMQ 2.01.04-18 bo'yicha, issiqlik himoyasi darajasi va D_is.dav ga bog'liq holda jadvaldan olinadi.
+            SHNQ 2.01.04-2018 bo'yicha, issiqlik himoyasi darajasi va D_is.dav ga bog'liq holda jadvaldan olinadi.
           </Text>
 
           {/**TITLE */}
