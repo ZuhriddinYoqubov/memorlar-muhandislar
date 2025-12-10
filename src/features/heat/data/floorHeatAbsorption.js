@@ -93,21 +93,18 @@ export function calculateYp(layers, humidityCondition = "A") {
   const D1 = preparedLayers[0].D;
   const S1 = preparedLayers[0].S;
 
-  steps.push(
-    `D qiymatlari (qatlamlar bo'yicha): ${D_values
-      .map((d, i) => `D${i + 1}=${d.toFixed(3)}`)
-      .join(", ")}`
-  );
-  steps.push(`1-qatlam inersiyasi D1 = ${D1.toFixed(3)}`);
-
   if (D1 >= 0.5) {
     const Yp = 2 * S1;
-    steps.push(`D1 >= 0.5, 1-holat qo'llanildi: Yp = 2 * S1`);
-    steps.push(`Yp = 2 * ${S1.toFixed(2)} = ${Yp.toFixed(2)}`);
+    
+    steps.push({
+      type: 'formula',
+      formula: `Y<sub>p</sub> = 2 * ${S1.toFixed(2)} =`,
+      result: Yp.toFixed(2)
+    });
     return {
       Yp,
       case: 1,
-      formula: "Yp = 2 * S1",
+      formula: "Y1 = 2 * S1",
       steps,
       D_values,
     };
@@ -120,28 +117,26 @@ export function calculateYp(layers, humidityCondition = "A") {
 
   let cumD = 0;
   let mIndex1Based = null; // D1+...+Dm >= 0.5 bo'lgan eng kichik m
-  const cumD_trace = [];
 
   for (let i = 0; i < nTotal; i++) {
     cumD += preparedLayers[i].D;
-    cumD_trace.push(`ΣD1..D${i + 1} = ${cumD.toFixed(3)}`);
     if (cumD >= 0.5 && mIndex1Based === null) {
       mIndex1Based = i + 1;
     }
   }
 
-  steps.push(...cumD_trace);
-
   // Agar hech qayerda 0.5 ga yetmasa, m = oxirgi qatlam deb olamiz
   if (mIndex1Based === null) {
     mIndex1Based = nTotal;
-    steps.push(
-      `ΣD1..D${nTotal} < 0.5, chegara m qatlam sifatida oxirgi qatlam qabul qilindi (m = ${mIndex1Based})`
-    );
+    steps.push({
+      type: 'text',
+      content: `ΣD₁..D<sub>${nTotal}</sub> < 0.5, chegara m qatlam sifatida oxirgi qatlam qabul qilindi (m = ${mIndex1Based})`
+    });
   } else {
-    steps.push(
-      `Chegara m qatlam: m = ${mIndex1Based} (ΣD1..Dm birinchi bo'lib 0.5 dan katta yoki teng bo'ldi)`
-    );
+    steps.push({
+      type: 'text',
+      content: `${mIndex1Based}-qatlamda ΣD₁..D<sub>${mIndex1Based}</sub> issiqlik inersiyasi birinchi bo'lib 0.5 dan katta bo'ldi. Shu sababli ${mIndex1Based - 1} -qatlamni formuladagi n qatlam deb olamiz.`,
+    });
   }
 
   const nIndex1Based = mIndex1Based - 1; // birinchi n qatlam inertsiya jami < 0.5
@@ -153,10 +148,6 @@ export function calculateYp(layers, humidityCondition = "A") {
         "Inersiya chegarasini aniqlashda xatolik: n < 1 chiqdi (qatlam tartibi noto'g'ri bo'lishi mumkin)",
     };
   }
-
-  steps.push(
-    `n = ${nIndex1Based} (birinchi n qatlam uchun ΣD < 0.5 bo'lishi kerak)`
-  );
 
   // 3.1. n-qatlam uchun Yn hisoblash:
   // Yn = (2 * Rn * Sn² + S(n+1)) / (0.5 + Rn * S(n+1))
@@ -177,17 +168,11 @@ export function calculateYp(layers, humidityCondition = "A") {
 
   let Y_curr = numerator_n / denominator_n; // bu Yn
 
-  steps.push(
-    `n-qatlam (Y${nIndex1Based}) uchun formula: Y${nIndex1Based} = (2 * R${nIndex1Based} * S${nIndex1Based}² + S${nIndex1Based +
-      1}) / (0.5 + R${nIndex1Based} * S${nIndex1Based + 1})`
-  );
-  steps.push(
-    `Y${nIndex1Based} = (2 * ${Rn.toFixed(3)} * ${Sn.toFixed(
-      2
-    )}² + ${Snp1.toFixed(2)}) / (0.5 + ${Rn.toFixed(3)} * ${Snp1.toFixed(
-      2
-    )}) = ${Y_curr.toFixed(2)}`
-  );
+  steps.push({
+    type: 'formula',
+    formula: `Y<sub>${nIndex1Based}</sub> = (2 × R<sub>${nIndex1Based}</sub> × S<sub>${nIndex1Based}</sub>² + S<sub>${nIndex1Based + 1}</sub>) / (0.5 + R<sub>${nIndex1Based}</sub> × S<sub>${nIndex1Based + 1}</sub>) = (2 × ${Rn.toFixed(3)} × ${Sn.toFixed(2)}² + ${Snp1.toFixed(2)}) / (0.5 + ${Rn.toFixed(3)} × ${Snp1.toFixed(2)}) =`,
+    result: Y_curr.toFixed(2)
+  });
 
   // 3.2. i = n-1 dan 1 gacha orqaga: Yi = (4*Ri*Si² + Yi+1) / (1 + Ri*Yi+1)
   for (let i1 = nIndex1Based - 1; i1 >= 1; i1--) {
@@ -205,26 +190,15 @@ export function calculateYp(layers, humidityCondition = "A") {
 
     Y_curr = num_i / den_i; // endi bu Yi
 
-    steps.push(`2-formula bo'yicha Y${i1} hisoblash:`);
-    steps.push(
-      `Y${i1} = (4 * R${i1} * S${i1}² + Y${i1 + 1}) / (1 + R${i1} * Y${i1 +
-        1})`
-    );
-    steps.push(
-      `Y${i1} = (4 * ${Ri.toFixed(3)} * ${Si.toFixed(
-        2
-      )}² + ${Y_next.toFixed(2)}) / (1 + ${Ri.toFixed(3)} * ${Y_next.toFixed(
-        2
-      )}) = ${Y_curr.toFixed(2)}`
-    );
+    steps.push({
+      type: 'formula',
+      formula: `Y<sub>${i1}</sub> = (4 × R<sub>${i1}</sub> × S<sub>${i1}</sub>² + Y<sub>${i1 + 1}</sub>) / (1 + R<sub>${i1}</sub> × Y<sub>${i1 + 1}</sub>) = (4 × ${Ri.toFixed(3)} × ${Si.toFixed(2)}² + ${Y_next.toFixed(2)}) / (1 + ${Ri.toFixed(3)} × ${Y_next.toFixed(2)}) =`,
+      result: Y_curr.toFixed(2)
+    });
   }
 
-  // 3.3. Yakuniy Yp = Y1
-  const Yp = Y_curr;
-  steps.push(`Yakuniy Yp = Y1 = ${Yp.toFixed(2)}`);
-
   return {
-    Yp,
+    Yp: Y_curr,
     case: 2,
     formula: "Iterativ hisob (2-holat, n va m bo'yicha)",
     steps,

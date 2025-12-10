@@ -544,7 +544,7 @@ export default function App() {
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <img src={logo} alt="Logo" className="h-10 w-auto" />
-              <div className="font-bold text-2xl text-[#025C5A]">
+              <div className="font-bold text-2xl text-[#1080c2]">
                 Me'morlar va Muhandislar
               </div>
             </div>
@@ -555,7 +555,7 @@ export default function App() {
                   href="https://t.me/ZuhriddinYoqubov"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#025C5A] text-[#025C5A] hover:bg-[#025C5A] hover:text-white transition"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#1080c2] text-[#1080c2] hover:bg-[#1080c2] hover:text-white transition"
                   aria-label="Telegram"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
@@ -566,20 +566,20 @@ export default function App() {
               </div>
             </div>
           </div>
-          {/* Tab navigatsiya: faol tab birinchi, ikkinchisida 'Tez kunda' belgisi, uchinchi tabda Energetik pasport */}
+          {/* Tab navigatsiya: faol tab birinchi, ikkinchisida 'Tez kunda' belgisi, uchinchi tabda t */}
           <div className="mt-4 flex items-center">
             <div className="flex items-center space-x-8">
               {/* 1-tab: Loyiha qiymati kalkulyatori (asosiy kalkulyator sahifasi) */}
               <div
                 onClick={() => setActiveTab('calculator')}
-                className={`cursor-pointer pb-2 hover:text-[#025C5A] ${activeTab==='calculator' ? 'border-b-2 border-[#025C5A] text-[#025C5A] font-semibold' : 'text-gray-700'}`}
+                className={`cursor-pointer pb-2 hover:text-[#025C5A] ${activeTab==='calculator' ? 'border-b-2 border-[#1080c2] text-[#1080c2] font-semibold' : 'text-gray-700'}`}
               >
                 Loyiha qiymati kalkulyatori
               </div>
               {/* 2-tab: Issiqlik texnik hisob-kitobi (ITH.jsx komponenti) */}
               <div
                 onClick={() => setActiveTab('ith')}
-                className={`cursor-pointer pb-2 hover:text-[#025C5A] ${activeTab==='ith' ? 'border-b-2 border-[#025C5A] text-[#025C5A] font-semibold' : 'text-gray-700'}`}
+                className={`cursor-pointer pb-2 hover:text-[#025C5A] ${activeTab==='ith' ? 'border-b-2 border-[#1080c2] text-[#1080c2] font-semibold' : 'text-gray-700'}`}
               >
                 Issiqlik texnik hisob-kitobi
               </div>
@@ -595,7 +595,7 @@ export default function App() {
                     // ignore
                   }
                 }}
-                className={`cursor-pointer pb-2 hover:text-[#025C5A] ${activeTab==='heat' ? 'border-b-2 border-[#025C5A] text-[#025C5A] font-semibold' : 'text-gray-700'}`}
+                className={`cursor-pointer pb-2 hover:text-[#025C5A] ${activeTab==='heat' ? 'border-b-2 border-[#1080c2] text-[#1080c2] font-semibold' : 'text-gray-700'}`}
               >
                 Energetik pasport
               </div>

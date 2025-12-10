@@ -25,6 +25,8 @@ import {
 import { exportHeatStepPdfReact } from "./utils/exportHeatPdfReact";
 import { exportWindowStepPdfReact } from "./utils/exportWindowPdf.jsx";
 import { exportDoorStepPdfReact } from "./utils/exportDoorPdf.jsx";
+import { exportFloorPdfReact } from "./utils/exportFloorPdfReact";
+import { calculateYp as calculateFloorYp, getFloorAbsorptionNorm } from "./data/floorHeatAbsorption";
 import { MaterialTreeModal } from "./controls/MaterialTreeModal";
 import { MaterialLayersTable } from "./controls/MaterialLayersTable";
 import { ProtectionLevelInfoModal, RibHeightInfoModal } from "./controls/InfoModals";
@@ -1524,6 +1526,64 @@ export default function HeatWizard() {
           heatingSeason,
           heatStep: heatStepMeta,
           RoTalSG,
+        });
+      } else if (currentConstructionType === "floor_heat_calculation") {
+        // Yerdagi pol uchun PDF eksport
+        // floorData ni hozirgi layers dan hisoblash (UI dagi algoritmga mos)
+        const regime = climate && climate.t_in != null && climate.phi_in != null
+          ? getHumidityRegimeInfo(climate.t_in, climate.phi_in)?.regime || "normal"
+          : "normal";
+        const humidityCondition = (regime === "quruq" || regime === "normal") ? "A" : "B";
+
+        // calculateYp funksiyasi ichida R, S, D ham hisoblanadi va steps to'liq shakllanadi
+        const YpResult = calculateFloorYp(layers, humidityCondition);
+        const YpNorm = getFloorAbsorptionNorm(initial?.objectType);
+
+        // D_data ni calculateYp ichidagi D_values asosida qayta qurish
+        let sum_D = 0;
+        const D_steps = [];
+        if (YpResult && Array.isArray(YpResult.D_values) && YpResult.D_values.length === layers.length) {
+          YpResult.D_values.forEach((D_val, idx) => {
+            const layer = layers[idx];
+            const d_m = (Number(layer.thickness_mm) || 0) / 1000;
+            const lam = Number(layer.lambda) || 0;
+            const R_val = d_m > 0 && lam > 0 ? d_m / lam : 0;
+            const s_raw = layer.s;
+            const S_val = typeof s_raw === "object"
+              ? Number(s_raw[humidityCondition] ?? s_raw.A ?? 0)
+              : Number(s_raw ?? 0);
+
+            sum_D += Number(D_val) || 0;
+
+            D_steps.push({
+              index: idx + 1,
+              materialName: layer.name || `Qatlam ${idx + 1}`,
+              R: R_val.toFixed(3),
+              S: S_val.toFixed(2),
+              D: (Number(D_val) || 0).toFixed(3),
+            });
+          });
+        }
+
+        exportFloorPdfReact({
+          initial: {
+            ...initial,
+            provinceName,
+            regionName,
+          },
+          climate,
+          heatingSeason,
+          floorData: {
+            layers,
+            humidityCondition,
+            D_data: {
+              steps: D_steps,
+              sum_D
+            },
+            YpResult,
+            YpNorm
+          },
+          saved: heatStepMeta?.savedState
         });
       } else {
         exportHeatStepPdfReact({

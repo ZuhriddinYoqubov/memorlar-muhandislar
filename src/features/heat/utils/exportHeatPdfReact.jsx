@@ -442,12 +442,13 @@ const HeatPdfDocument = ({ initial, climate, heatingSeason, heatStep, constructi
             </View>
           )}
 
-          {/* Footer */}
-          <View style={{ position: 'absolute', bottom: -10, left: 20, right: 20 }}>
-            <Text style={{ fontSize: 8, color: '#888888', textAlign: 'center' }}>
-              © {currentYear} | Loyiha qiymati kalkulyatori
-            </Text>
-          </View>
+        </View>
+
+        {/* Footer - ramkadan tashqarida */}
+        <View style={{ position: 'absolute', bottom: 10, left: 0, right: 0 }} fixed>
+          <Text style={{ fontSize: 8, color: '#888888', textAlign: 'center' }}>
+            © {currentYear} | Loyiha qiymati kalkulyatori
+          </Text>
         </View>
       </Page>
     </Document >

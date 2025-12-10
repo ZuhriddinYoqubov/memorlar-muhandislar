@@ -64,6 +64,7 @@ export function FloorHeatCalculationStep({
 }) {
   const [showInitial, setShowInitial] = useState(false);
   const [showNormative, setShowNormative] = useState(false);
+  const [showDBlock, setShowDBlock] = useState(false);
 
   // Hozirgi konstruksiya turini aniqlash
   const currentConstructionType = constructionType;
@@ -89,22 +90,28 @@ export function FloorHeatCalculationStep({
     let sum_D = 0;
     const steps = [];
     layers.forEach((l, idx) => {
-        const d_m = (parseFloat(l.thickness_mm) || 0) / 1000;
-        const lambda = parseFloat(l.lambda) || 0;
-        const R = (d_m > 0 && lambda > 0) ? d_m / lambda : 0;
-        
-        let s_val = 0;
-        if (l.s != null && l.s !== "") {
-            if (typeof l.s === 'object') {
-                s_val = parseFloat(l.s[humidityCondition] || l.s.A || 0);
-            } else {
-                s_val = parseFloat(l.s);
-            }
+      const d_m = (parseFloat(l.thickness_mm) || 0) / 1000;
+      const lambda = parseFloat(l.lambda) || 0;
+      const R = (d_m > 0 && lambda > 0) ? d_m / lambda : 0;
+
+      let s_val = 0;
+      if (l.s != null && l.s !== "") {
+        if (typeof l.s === 'object') {
+          s_val = parseFloat(l.s[humidityCondition] || l.s.A || 0);
+        } else {
+          s_val = parseFloat(l.s);
         }
-        
-        const D = R * s_val;
-        sum_D += D;
-        steps.push(`D${idx+1} = R${idx+1} × S${idx+1} = ${R.toFixed(3)} × ${s_val.toFixed(2)} = ${D.toFixed(3)}`);
+      }
+
+      const D = R * s_val;
+      sum_D += D;
+      steps.push({
+        index: idx + 1,
+        materialName: l.name || 'Nomsiz material',
+        R: R.toFixed(3),
+        S: s_val.toFixed(2),
+        D: D.toFixed(3)
+      });
     });
     return { sum_D, steps };
   }, [layers, humidityCondition]);
@@ -117,33 +124,33 @@ export function FloorHeatCalculationStep({
     const d1_m = (parseFloat(L1.thickness_mm) || 0) / 1000;
     const lam1 = parseFloat(L1.lambda) || 0;
     const R1 = (d1_m > 0 && lam1 > 0) ? d1_m / lam1 : 0;
-    
+
     let s1_val = 0;
     if (L1.s != null) {
-       if (typeof L1.s === 'object') {
-         s1_val = parseFloat(L1.s[humidityCondition] || L1.s.A || 0);
-       } else {
-         s1_val = parseFloat(L1.s);
-       }
+      if (typeof L1.s === 'object') {
+        s1_val = parseFloat(L1.s[humidityCondition] || L1.s.A || 0);
+      } else {
+        s1_val = parseFloat(L1.s);
+      }
     }
     const D1 = R1 * s1_val;
     const isScenario1 = D1 >= 0.5;
 
     let sumD_rest = 0;
     for (let i = 1; i < layers.length; i++) {
-        const L = layers[i];
-        const d_m = (parseFloat(L.thickness_mm) || 0) / 1000;
-        const lam = parseFloat(L.lambda) || 0;
-        const R = (d_m > 0 && lam > 0) ? d_m / lam : 0;
-        let s_val = 0;
-        if (L.s != null) {
-            if (typeof L.s === 'object') {
-                s_val = parseFloat(L.s[humidityCondition] || L.s.A || 0);
-            } else {
-                s_val = parseFloat(L.s);
-            }
+      const L = layers[i];
+      const d_m = (parseFloat(L.thickness_mm) || 0) / 1000;
+      const lam = parseFloat(L.lambda) || 0;
+      const R = (d_m > 0 && lam > 0) ? d_m / lam : 0;
+      let s_val = 0;
+      if (L.s != null) {
+        if (typeof L.s === 'object') {
+          s_val = parseFloat(L.s[humidityCondition] || L.s.A || 0);
+        } else {
+          s_val = parseFloat(L.s);
         }
-        sumD_rest += R * s_val;
+      }
+      sumD_rest += R * s_val;
     }
 
     return { D1, sumD_rest, isScenario1, S1: s1_val };
@@ -239,7 +246,7 @@ export function FloorHeatCalculationStep({
                 setDraggingLayerId={setDraggingLayerId}
                 moveLayer={moveLayer}
                 showSColumn={true}
-                showDColumn={true}
+                showDColumn={false}
                 humidityCondition={humidityCondition}
                 thicknessInputWidth="w-20"
               />
@@ -254,60 +261,139 @@ export function FloorHeatCalculationStep({
                 </button>
               </div>
 
+              <div className="border-t border-dashed border-gray-200 my-4" />
+
+              {/* D bloki - Issiqlik inersiyasi */}
+              {layers && layers.length > 0 && (
+                <section className="mt-6 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-lg md:text-xl font-semibold text-gray-900">
+                      To'suvchi konstruksiyalarning issiqlik inertsiyasi, 
+                       <span className="font-medium text-[#1080c2]"> D</span>
+                    </h3>
+                    <div className="flex items-center gap-3">
+
+                      <button
+                        type="button"
+                        onClick={() => setShowDBlock(!showDBlock)}
+                        className="w-7 h-7 flex items-center justify-center rounded-full border border-gray-300 bg-white text-gray-600 hover:bg-gray-100 text-xs"
+                        aria-label={showDBlock ? "D blokini yopish" : "D blokini ochish"}
+                      >
+                        <span className={`transform transition-transform ${showDBlock ? "rotate-0" : "-rotate-90"}`}>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {showDBlock && (
+                    <div className="space-y-2 text-[0.9rem]">
+                      {D_data.steps.map((step, idx) => (
+                        <React.Fragment key={idx}>
+                          {idx > 0 && <div className="border-t border-dashed border-gray-200" />}
+                          <div className="pt-1">
+                            <div className="flex items-baseline justify-between gap-3">
+                              <span className="font-medium">
+                                D<sub className="align-baseline text-[0.7em]">{step.index}</sub> {step.materialName}
+                              </span>
+                              <span className="text-right text-[#1080c2] font-semibold">
+                                {step.D}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-500 italic mt-1">
+                              D<sub className="align-baseline text-[0.7em]">{step.index}</sub> = R<sub className="align-baseline text-[0.7em]">{step.index}</sub> × S<sub className="align-baseline text-[0.7em]">{step.index}</sub> = {step.R} × {step.S} = {step.D}
+                            </p>
+                          </div>
+                        </React.Fragment>
+                      ))}
+                      <div className="border-t border-dashed border-gray-200" />
+                      <div className="flex items-baseline justify-between gap-3 pt-2">
+                        <span className="font-semibold text-gray-900 ">Jami issiqlik inersiyasi (ΣD)</span>
+                        <span className="text-right text-[#1080c2] font-bold text-lg">
+                          {D_data.sum_D.toFixed(3)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </section>
+              )}
+
+              <div className="border-t border-dashed border-gray-200 my-4" />
+
               {/* Senariy bloki */}
               {scenarioData && (
                 <div className="mt-6 text-sm">
                   {scenarioData.isScenario1 ? (
                     <div className="space-y-3">
-                      <p className="text-gray-800 text-justify leading-relaxed">
-                        <span className="font-semibold">SHNQ 2.01.04-18 ga asosan:</span> Birinchi qatlamning issiqlik inersiyasi{" "}
-                        <span className="font-medium">D₁ = R₁ · S₁ = {scenarioData.D1.toFixed(3)} ≥ 0.5</span>{" "}
-                        bo'lganligi sababli, pol yuzasining issiqlik o'zlashtirish ko'rsatkichi quyidagi formula yordamida aniqlanadi:
-                      </p>
-                      <p className="font-semibold text-[#1080c2] text-lg pl-4">
-                        Y<sub className="align-baseline text-[0.7em]">p</sub> = 2 · S₁ = 2 · {scenarioData.S1.toFixed(2)} = {(2 * scenarioData.S1).toFixed(2)} W/(m²·°C)
+                      <p className="text-gray-800 leading-relaxed text-center">
+                        <span className="font-semibold">SHNQ 2.01.04-18 4.2-bandiga asosan:</span> Birinchi qatlamning issiqlik inersiyasi{" "}
+                        <span className="font-medium text-[#1080c2]">D₁ = R₁ · S₁ = {scenarioData.D1.toFixed(3)} ≥ 0.5</span>{" "}
+                        bo'lganligi sababli, pol yuzasining issiqlik o'zlashtirish ko'rsatkichi quyidagi formula yordamida aniqlanadi:{" "}
+                        <span className="font-semibold text-[#1080c2]">
+                          Y<sub className="text-[0.7em]">p</sub> = 2 · S₁
+                        </span>
+                        {YpResult && YpResult.case === 1 && YpResult.steps && YpResult.steps.map((step, idx) => (
+                          step.type === 'formula' && (
+                            <span key={idx}>
+                              {' = '}
+                              <span dangerouslySetInnerHTML={{ __html: step.formula.replace(/Y<sub>p<\/sub> = /, '').replace(/ =$/, '') }} />
+                              {' = '}
+                              <span className="text-[#1080c2] font-semibold">{step.result}</span>
+                            </span>
+                          )
+                        ))}
                       </p>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      <p className="text-gray-800 text-justify leading-relaxed">
-                        <span className="font-semibold">SHNQ 2.01.04-18 ga asosan:</span> Birinchi qatlamning issiqlik inersiyasi{" "}
-                        <span className="font-medium text-red-600">D₁ = R₁ · S₁ = {scenarioData.D1.toFixed(3)} &lt; 0.5</span>{" "}
+                      <p className="text-gray-800 leading-relaxed text-center">
+                        <span className="font-semibold">SHNQ 2.01.04-18 4.2-bandiga asosan:</span> Birinchi qatlamning issiqlik inersiyasi{" "}
+                        <span className="font-medium text-[#1080c2]">D₁ = R₁ · S₁ = {scenarioData.D1.toFixed(3)} &lt; 0.5</span>{" "}
                         bo'lganligi sababli, pol yuzasining issiqlik o'zlashtirish ko'rsatkichi quyidagi formulalar yordamida aniqlanadi:
                       </p>
-                      
-                      <div className="pl-4 space-y-3">
-                         {/* Formulalar yonma-yon */}
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                           <div>
-                             <p className="font-semibold text-gray-800 mb-1">(22)</p>
-                             <p className="font-mono text-sm font-bold text-[#1080c2]">
-                               Y<sub className="text-[0.7em]">n</sub> = (2 · R<sub className="text-[0.7em]">n</sub> · S<sub className="text-[0.7em]">n</sub>² + S<sub className="text-[0.7em]">n+1</sub>) / (0.5 + R<sub className="text-[0.7em]">n</sub> · S<sub className="text-[0.7em]">n+1</sub>)
-                             </p>
-                           </div>
 
-                           <div>
-                             <p className="font-semibold text-gray-800 mb-1">(22a)</p>
-                             <p className="font-mono text-sm font-bold text-[#1080c2]">
-                               Y<sub className="text-[0.7em]">i</sub> = (4 · R<sub className="text-[0.7em]">i</sub> · S<sub className="text-[0.7em]">i</sub>² + Y<sub className="text-[0.7em]">i+1</sub>) / (1 + R<sub className="text-[0.7em]">i</sub> · Y<sub className="text-[0.7em]">i+1</sub>)
-                             </p>
-                           </div>
-                         </div>
+                      <div className="space-y-3">
+                        {/* Formulalar yonma-yon */}
+                        <div className="flex flex-col md:flex-row md:justify-center md:gap-10 text-center text-sm space-y-2 md:space-y-0">
+                          <p>
+                            <span className="font-semibold text-gray-500">(22)</span>
+                            {' '}
+                            <span className="font-bold text-[#1080c2]">
+                              Y<sub className="text-[0.7em]">n</sub> = (2 · R<sub className="text-[0.7em]">n</sub> · S<sub className="text-[0.7em]">n</sub>² + S<sub className="text-[0.7em]">n+1</sub>) / (0.5 + R<sub className="text-[0.7em]">n</sub> · S<sub className="text-[0.7em]">n+1</sub>)
+                            </span>
+                          </p>
+                          <p>
+                            <span className="font-semibold text-gray-500">(22a)</span>
+                            {' '}
+                            <span className="font-bold text-[#1080c2]">
+                              Y<sub className="text-[0.7em]">i</sub> = (4 · R<sub className="text-[0.7em]">i</sub> · S<sub className="text-[0.7em]">i</sub>² + Y<sub className="text-[0.7em]">i+1</sub>) / (1 + R<sub className="text-[0.7em]">i</sub> · Y<sub className="text-[0.7em]">i+1</sub>)
+                            </span>
+                          </p>
+                        </div>
 
-                         {/* Hisob-kitob natijalari */}
-                         {YpResult && YpResult.case === 2 && YpResult.steps && (
-                            <div className="mt-4 space-y-2">
-                                <p className="font-medium text-gray-700">Hisob-kitob:</p>
-                                <div className="space-y-1 text-xs md:text-sm text-gray-600">
-                                    {YpResult.steps.map((step, idx) => (
-                                        <p key={idx} className="font-mono break-all">{step}</p>
-                                    ))}
+                        {/* Hisob-kitob natijalari */}
+                        {YpResult && YpResult.case === 2 && YpResult.steps && (
+                          <div className="mt-10 space-y-3 text-[0.9rem]">
+                            {YpResult.steps.map((step, idx) => (
+                              <React.Fragment key={idx}>
+                                {idx > 0 && <div className=" border-dashed border-gray-200" />}
+                                <div className={step.type === 'text' ? 'pt-2' : 'pt-1'}>
+                                  {step.type === 'text' ? (
+                                    <p className="text-gray-800" dangerouslySetInnerHTML={{ __html: step.content }} />
+                                  ) : (
+                                    <p className="text-gray-800">
+                                      <span dangerouslySetInnerHTML={{ __html: step.formula }} />
+                                      {' '}
+                                      <span className="text-[#1080c2] font-semibold">{step.result}</span>
+                                    </p>
+                                  )}
                                 </div>
-                                <p className="font-bold text-[#1080c2] text-lg pt-2">
-                                    Y<sub className="align-baseline text-[0.7em]">p</sub> = {YpResult.Yp?.toFixed(2)} W/(m²·°C)
-                                </p>
-                            </div>
-                         )}
+                              </React.Fragment>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -322,38 +408,14 @@ export function FloorHeatCalculationStep({
 
       {/* Yp natijalari */}
       {YpResult && YpResult.Yp != null && (
-        <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-800 mb-3">Pol yuzasining issiqlik o'zlashtirishi</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <p className="text-sm text-gray-500">Hisoblangan ko'rsatkich (Yp)</p>
-              <p className="text-2xl font-bold text-[#1080c2]">{YpResult.Yp.toFixed(2)} W/(m²·°C)</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Me'yoriy talab (Yp_norm)</p>
-              <p className="text-2xl font-bold text-gray-700">
-                {YpNorm != null ? `≤ ${YpNorm.toFixed(1)}` : "Aniqlanmagan"}
-              </p>
-            </div>
-          </div>
-
+        <div>
           {YpNorm != null && (
-            <div className={`mt-4 p-3 rounded-lg border ${YpResult.Yp <= YpNorm ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
-              <div className="flex items-center gap-2 font-medium">
-                {YpResult.Yp <= YpNorm ? (
-                  <>
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                    Talab bajarildi
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                    Talab bajarilmadi
-                  </>
-                )}
-              </div>
-              <p className="text-sm mt-1">
-                Farq: {(YpNorm - YpResult.Yp).toFixed(2)} ({YpResult.Yp <= YpNorm ? "Zaxira" : "Yetishmovchilik"})
+            <div className={`mt-4 p-4 rounded-lg border text-center ${YpResult.Yp <= YpNorm ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-200'}`}>
+              <p className="text-sm leading-relaxed mb-3">
+                <span className="font-semibold">SHNQ 2.01.04-2018</span> Qurilish issiqlik texnikasining 11-jadvaliga muvofiq pol yuzasining issiqlik o'zlashtirish ko'rsatkichi, Y<sub className="align-baseline text-[0.7em]">p</sub> - <span className="font-semibold">{YpResult.Yp.toFixed(2)} Vt / (m² · °C)</span> me'yoriy qiymatdan <span className="font-semibold">{YpNorm.toFixed(1)} Vt / (m² · °C)</span> {YpResult.Yp <= YpNorm ? 'kichik.' : 'katta.'}
+              </p>
+              <p className={`text-xl font-bold ${YpResult.Yp <= YpNorm ? 'text-green-700' : 'text-red-700'}`}>
+                {YpResult.Yp <= YpNorm ? "Issiqlik o'zlashtirish me'yoriy talabga muvofiq keladi!" : "Issiqlik o'zlashtirish me'yoriy talabga muvofiq kelmaydi!"}
               </p>
             </div>
           )}

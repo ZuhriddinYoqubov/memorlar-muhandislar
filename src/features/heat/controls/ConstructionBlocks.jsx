@@ -495,27 +495,23 @@ export function ConstructionResultSummary({ Ro_calc, RoTalab }) {
       : "kichik";
 
   return (
-    <div className="mt-4 pt-4">
-      <p className="text-lg font-semibold text-gray-900 text-center">
-        To'suvchi konstruksiyalarning issiqlik uzatilishiga keltirilgan qarshiligi (
-        R
-        <sub className="align-baseline text-[0.7em]">o</sub>
-        {" = "}
-        <span className="text-[#1080c2]">{RoStr}</span> m²·°C/Vt) {relationText} (
-        R
-        <sub className="align-baseline text-[0.7em]">o</sub>
-        <sup className="align-baseline text-[0.7em]">Tal.</sup>
-        {" = "}
-        <span className="text-[#1080c2]">{RoTalStr}</span> m²·°C/Vt) {relationWord}.
-      </p>
-      <p
-        className={
-          "mt-1 text-2xl font-bold text-center " +
-          (isCompliant ? "text-emerald-600" : "text-red-600")
-        }
-      >
-        Issiqlik himoyasi talabiga muvofiq {isCompliant ? "keladi" : "kelmaydi"}!
-      </p>
+    <div className="mt-4">
+      <div className={`p-4 rounded-lg border ${isCompliant ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-200'}`}>
+        <p className="text-base leading-relaxed text-center mb-3">
+          To'suvchi konstruksiyalarning issiqlik uzatilishiga keltirilgan qarshiligi (
+          R
+          <sub className="align-baseline text-[0.7em]">o</sub>
+          {" = "}
+          <span className="font-bold">{RoStr}</span> m²·°C/Vt) {relationText} (
+          R
+          <sub className="align-baseline text-[0.7em]">o</sub>
+          <sup className="align-baseline text-[0.7em]">Tal.</sup>
+          {" = "}
+          <span className="font-bold">{RoTalStr}</span> m²·°C/Vt) {relationWord}.
+        </p>
+
+        <p className={` text-center text-xl font-bold ${isCompliant ? 'text-green-700' : 'text-red-700'}`}>Issiqlik himoyasi talabiga muvofiq {isCompliant ? "keladi" : "kelmaydi"}!</p>
+      </div>
     </div>
   );
 }

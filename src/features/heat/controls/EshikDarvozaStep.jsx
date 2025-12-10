@@ -50,7 +50,7 @@ export function EshikDarvozaStep({
 
       <div className="border-t border-dashed border-gray-200 my-4" />
       {/* Material bloki - qatlamlar jadvali va havo qatlami */}
-      <div className="mt-6 bg-white rounded-2xl border border-[#E5E7EB] p-4 md:p-6 shadow-sm space-y-6">
+      <div>
 
         <MaterialLayersTable
           layers={layers}
@@ -161,28 +161,21 @@ export function EshikDarvozaStep({
                 : "kichik";
 
             return (
-              <>
-                <p className="text-lg font-semibold text-gray-900 text-center">
+              <div className={`p-4 rounded-lg border ${isCompliant ? 'bg-green-50 border-green-300 ' : 'bg-red-50 border-red-200  '}`}>
+                <p className="text-sm leading-relaxed text-center mb-3">
                   Eshik va darvozalarning issiqlik uzatilishiga keltirilgan qarshiligi (
                   R
                   <sub className="align-baseline text-[0.7em]">o</sub>
                   {" = "}
-                  <span className="text-[#1080c2]">{RoStr}</span> m²·°C/Vt) {relationText} (
-                  R
+                  <span className="font-semibold">{RoStr}</span> m²·°C/Vt) talab etilganidan (R
                   <sub className="align-baseline text-[0.7em]">o</sub>
                   <sup className="align-baseline text-[0.7em]">Tal.e.d</sup>
                   {" = "}
-                  <span className="text-[#1080c2]">{RoTalStr}</span> m²·°C/Vt) {relationWord}.
+                  <span className="font-semibold">{RoTalStr}</span> m²·°C/Vt) {relationWord}.
+                  
                 </p>
-                <p
-                  className={
-                    "mt-1 text-2xl font-bold text-center " +
-                    (isCompliant ? "text-emerald-600" : "text-red-600")
-                  }
-                >
-                  Issiqlik himoyasi talabiga muvofiq {isCompliant ? "keladi" : "kelmaydi"}!
-                </p>
-              </>
+                <p className={` text-center text-xl font-bold ${isCompliant ? 'text-green-700' : 'text-red-700'}`}>Issiqlik himoyasi talabiga muvofiq {isCompliant ? "keladi" : "kelmaydi"}!</p>
+              </div>
             );
           })()}
         </div>
