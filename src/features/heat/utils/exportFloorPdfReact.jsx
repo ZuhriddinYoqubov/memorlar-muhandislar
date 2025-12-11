@@ -17,8 +17,8 @@ Font.register({
     src: NotoSansMathUrl,
 });
 
-// PDF Document komponenti - Yerdagi pol uchun
-const FloorPdfDocument = ({ initial, climate, heatingSeason, floorData, saved }) => {
+// Faqat sahifalar komponenti (Document siz) - birlashtirilgan PDF uchun
+export const FloorPages = ({ initial, climate, heatingSeason, floorData, saved }) => {
     const currentYear = new Date().getFullYear();
 
     // Obekt nomini tayyorlash
@@ -41,9 +41,8 @@ const FloorPdfDocument = ({ initial, climate, heatingSeason, floorData, saved })
     const isSatisfied = YpResult?.Yp != null && YpNorm != null && YpResult.Yp <= YpNorm;
 
     return (
-        <Document>
-
-            {/* 2-SAHIFA: HISOB */}
+        <>
+            {/* HISOB SAHIFASI */}
             <Page size="A4" style={pdfStyles.page}>
                 <View style={pdfStyles.pageBorder} fixed />
                 <View style={pdfStyles.pageContent}>
@@ -463,9 +462,22 @@ const FloorPdfDocument = ({ initial, climate, heatingSeason, floorData, saved })
                     </Text>
                 </View>
             </Page>
-        </Document>
+        </>
     );
 };
+
+// PDF Document komponenti (alohida eksport uchun)
+const FloorPdfDocument = ({ initial, climate, heatingSeason, floorData, saved }) => (
+    <Document>
+        <FloorPages
+            initial={initial}
+            climate={climate}
+            heatingSeason={heatingSeason}
+            floorData={floorData}
+            saved={saved}
+        />
+    </Document>
+);
 
 // PDF eksport funksiyasi
 export async function exportFloorPdfReact({ initial, climate, heatingSeason, floorData, saved }) {

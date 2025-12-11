@@ -34,7 +34,8 @@ const getWindowVariantLabel = (groupId, variantName) => {
   return `${group.group} — ${variant.name}`;
 };
 
-const WindowPdfDocument = ({ initial, climate, heatingSeason, heatStep }) => {
+// Faqat sahifalar komponenti (Document siz) - birlashtirilgan PDF uchun
+export const WindowPages = ({ initial, climate, heatingSeason, heatStep }) => {
   const saved = heatStep?.savedState || {};
   const currentYear = new Date().getFullYear();
 
@@ -78,8 +79,7 @@ const WindowPdfDocument = ({ initial, climate, heatingSeason, heatStep }) => {
   }
 
   return (
-    <Document>
-
+    <>
       <Page size="A4" style={pdfStyles.page}>
         <View style={pdfStyles.pageBorder} fixed />
         <View style={pdfStyles.pageContent}>
@@ -269,9 +269,21 @@ const WindowPdfDocument = ({ initial, climate, heatingSeason, heatStep }) => {
 
         </View>
       </Page>
-    </Document>
+    </>
   );
 };
+
+// PDF Document komponenti (alohida eksport uchun)
+const WindowPdfDocument = ({ initial, climate, heatingSeason, heatStep }) => (
+  <Document>
+    <WindowPages
+      initial={initial}
+      climate={climate}
+      heatingSeason={heatingSeason}
+      heatStep={heatStep}
+    />
+  </Document>
+);
 
 export async function exportWindowStepPdfReact({ initial, climate, heatingSeason, heatStep }) {
   try {

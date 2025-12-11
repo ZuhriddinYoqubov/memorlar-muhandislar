@@ -135,7 +135,7 @@ export function calculateYp(layers, humidityCondition = "A") {
   } else {
     steps.push({
       type: 'text',
-      content: `${mIndex1Based}-qatlamda ΣD₁..D<sub>${mIndex1Based}</sub> issiqlik inersiyasi birinchi bo'lib 0.5 dan katta bo'ldi. Shu sababli ${mIndex1Based - 1} -qatlamni formuladagi n qatlam deb olamiz.`,
+      content: `${mIndex1Based}-qatlamda ΣD₁..D<sub>${mIndex1Based}</sub> issiqlik inersiyasi birinchi bo'lib 0.5 dan katta bo'ldi. Shu sababli ${mIndex1Based - 1} - qatlamni formuladagi n qatlam deb olamiz.`,
     });
   }
 

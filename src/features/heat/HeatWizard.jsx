@@ -26,6 +26,8 @@ import { exportHeatStepPdfReact } from "./utils/exportHeatPdfReact";
 import { exportWindowStepPdfReact } from "./utils/exportWindowPdf.jsx";
 import { exportDoorStepPdfReact } from "./utils/exportDoorPdf.jsx";
 import { exportFloorPdfReact } from "./utils/exportFloorPdfReact";
+import { exportCalculationTablePdf } from "./utils/exportCalculationTablePdf.jsx";
+import { exportFullReportPdf } from "./utils/exportFullReportPdf.jsx";
 import { calculateYp as calculateFloorYp, getFloorAbsorptionNorm } from "./data/floorHeatAbsorption";
 import { MaterialTreeModal } from "./controls/MaterialTreeModal";
 import { MaterialLayersTable } from "./controls/MaterialLayersTable";
@@ -531,6 +533,16 @@ export default function HeatWizard() {
                 phi_in: climate.phi_in,
                 // Namlik rejimi ma'lumotlari (PDF izohlar uchun) - harorat va namlik asosida
                 humidityRegimeInfo: getHumidityRegimeInfo(climate.t_in, climate.phi_in),
+                // Pol uchun Yp qiymati
+                Yp: (() => {
+                  if (constructionType === "floor_heat_calculation") {
+                    const regime = getHumidityRegimeInfo(climate.t_in, climate.phi_in)?.regime || "normal";
+                    const humidityCondition = (regime === "quruq" || regime === "normal") ? "A" : "B";
+                    const YpResult = calculateFloorYp(layers, humidityCondition);
+                    return YpResult?.Yp || null;
+                  }
+                  return null;
+                })(),
               },
             }
           : step,
@@ -1382,6 +1394,7 @@ export default function HeatWizard() {
   const handleExportCurrentStepPdf = () => {
     // 1-bosqich
     if (currentStepId === "initial") {
+      // Boshlang'ich ma'lumotlar PDF
       exportInitialStepPdf({ initial, climate, heatingSeason });
       return;
     }
@@ -1599,18 +1612,107 @@ export default function HeatWizard() {
         });
       }
       
-      // pdfmake versiyasi (zaxira)
-      // exportHeatStepPdf({
-      //   initial,
-      //   climate,
-      //   heatingSeason,
-      //   heatStep: heatStepMeta,
-      //   CONSTRUCTION_TYPES,
-      // });
       return;
     }
 
     window.alert("Bu bosqich uchun alohida PDF eksport hali qo'llab-quvvatlanmagan.");
+  };
+
+  // Umumiy PDF eksport - barcha sahifalarni bitta PDF faylga birlashtiradi
+  const handleExportFullReportPdf = async () => {
+    // Province va region nomlarini topish
+    const provinceData = REGIONS.find(p => p.viloyat === initial.province);
+    const provinceName = provinceData?.viloyat || initial.province || "Viloyat";
+    const regionIndex = parseInt(initial.region, 10);
+    const regionData = provinceData?.hududlar?.[regionIndex];
+    const regionName = regionData?.hudud || "Tuman/Shahar";
+
+    const initialWithNames = {
+      ...initial,
+      provinceName,
+      regionName,
+    };
+
+    // Pol steplari uchun floorData ni tayyorlash
+    const floorDataMap = {};
+    for (const heatStep of heatSteps) {
+      const stepConstructionType = heatStep.presetConstructionType || heatStep.savedState?.constructionType;
+      if (stepConstructionType === "floor_heat_calculation" && heatStep.savedState) {
+        const regime = getHumidityRegimeInfo(climate.t_in, climate.phi_in)?.regime || "normal";
+        const humidityCondition = (regime === "quruq" || regime === "normal") ? "A" : "B";
+        const stepLayers = heatStep.savedState?.layers || [];
+        const YpResult = calculateFloorYp(stepLayers, humidityCondition);
+        const YpNorm = getFloorAbsorptionNorm(initial?.objectType);
+
+        let sum_D = 0;
+        const D_steps = [];
+        if (YpResult && Array.isArray(YpResult.D_values)) {
+          YpResult.D_values.forEach((D_val, idx) => {
+            const layer = stepLayers[idx];
+            const d_m = (Number(layer?.thickness_mm) || 0) / 1000;
+            const lam = Number(layer?.lambda) || 0;
+            const R_val = d_m > 0 && lam > 0 ? d_m / lam : 0;
+            const s_raw = layer?.s;
+            const S_val = typeof s_raw === "object"
+              ? Number(s_raw[humidityCondition] ?? s_raw.A ?? 0)
+              : Number(s_raw ?? 0);
+            sum_D += Number(D_val) || 0;
+            D_steps.push({
+              index: idx + 1,
+              materialName: layer?.name || `Qatlam ${idx + 1}`,
+              R: R_val.toFixed(3),
+              S: S_val.toFixed(2),
+              D: (Number(D_val) || 0).toFixed(3),
+            });
+          });
+        }
+
+        floorDataMap[heatStep.id] = {
+          layers: stepLayers,
+          humidityCondition,
+          D_data: { steps: D_steps, sum_D },
+          YpResult,
+          YpNorm,
+        };
+      }
+    }
+
+    // Q step uchun ma'lumotlar (buildingParams dan)
+    const qStepData = {
+      P_m: buildingParams.P_m,
+      H_m: buildingParams.H_m,
+      floors: buildingParams.floors,
+      A_f: buildingParams.A_f,
+      A_mc1: buildingParams.A_mc1,
+      V_h: buildingParams.V_h,
+      Xodim: buildingParams.Xodim,
+      roofType: buildingParams.roofType,
+      A_W: buildingParams.A_W,
+      A_L: buildingParams.A_L,
+      A_D: buildingParams.A_D,
+      A_CG: buildingParams.A_CG,
+      A_G: buildingParams.A_G,
+      A_R: buildingParams.A_R,
+    };
+
+    // Devor qatlamlari - birinchi devor stepidan olish
+    const wallStep = heatSteps.find(s => {
+      const ct = s.presetConstructionType || s.savedState?.constructionType;
+      return ct && ct !== "deraza_balkon_eshiklari" && ct !== "eshik_darvoza" && ct !== "floor_heat_calculation";
+    });
+    const wallLayers = wallStep?.savedState?.layers || [];
+
+    // Bitta PDF faylga eksport qilish
+    await exportFullReportPdf({
+      initial: initialWithNames,
+      climate,
+      heatingSeason,
+      heatSteps,
+      buildingParams,
+      floorDataMap,
+      qStepData,
+      wallLayers,
+    });
   };
 
   return (
@@ -1807,10 +1909,24 @@ export default function HeatWizard() {
                 </svg>
                 Hozirgi bosqich PDF
               </button>
-              <WizardSecondaryButton onClick={goPrev} disabled={activeIndex === 0}>
-                Orqaga
-              </WizardSecondaryButton>
-              <WizardPrimaryButton onClick={goNext}>
+              {/* Oxirgi stepda "Umumiy PDF" tugmasi, boshqa steplarda "Orqaga" */}
+              {activeIndex === displaySteps.length - 1 ? (
+                <button
+                  type="button"
+                  onClick={handleExportFullReportPdf}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#1080c2] to-[#0d6eaa] text-white font-semibold shadow hover:from-[#0d6eaa] hover:to-[#0a5a8c] transition text-sm"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Umumiy PDF
+                </button>
+              ) : (
+                <WizardSecondaryButton onClick={goPrev} disabled={activeIndex === 0}>
+                  Orqaga
+                </WizardSecondaryButton>
+              )}
+              <WizardPrimaryButton onClick={goNext} disabled={activeIndex === displaySteps.length - 1}>
                 Keyingi bosqich
               </WizardPrimaryButton>
             </div>

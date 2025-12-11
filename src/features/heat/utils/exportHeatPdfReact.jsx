@@ -25,8 +25,8 @@ Font.register({
   src: NotoSansMathUrl,
 });
 
-// PDF Document komponenti
-const HeatPdfDocument = ({ initial, climate, heatingSeason, heatStep, constructionType }) => {
+// Faqat sahifalar komponenti (Document siz) - birlashtirilgan PDF uchun
+export const HeatPages = ({ initial, climate, heatingSeason, heatStep, constructionType, showTitlePage = true }) => {
   const saved = heatStep?.savedState;
   const currentYear = new Date().getFullYear();
 
@@ -53,16 +53,18 @@ const HeatPdfDocument = ({ initial, climate, heatingSeason, heatStep, constructi
     : (RoCalc != null && RoTalabVal != null && RoCalc >= RoTalabVal);
 
   return (
-    <Document>
-      {/* 1-SAHIFA: TITLE */}
-      <Page size="A4" style={pdfStyles.titlePage}>
-        <View style={pdfStyles.titleBorder}>
-          <Text style={pdfStyles.companyName}>ARCHIPELAG MCHJ</Text>
-          <Text style={pdfStyles.objectInfo}>{objectInfo}</Text>
-          <Text style={pdfStyles.mainTitle}>ISSIQLIK TEXNIK XISOBI</Text>
-          <Text style={pdfStyles.yearInfo}>{provinceName} - {currentYear}-yil</Text>
-        </View>
-      </Page>
+    <>
+      {/* 1-SAHIFA: TITLE (faqat showTitlePage=true bo'lganda) */}
+      {showTitlePage && (
+        <Page size="A4" style={pdfStyles.titlePage}>
+          <View style={pdfStyles.titleBorder}>
+            <Text style={pdfStyles.companyName}>ARCHIPELAG MCHJ</Text>
+            <Text style={pdfStyles.objectInfo}>{objectInfo}</Text>
+            <Text style={pdfStyles.mainTitle}>ISSIQLIK TEXNIK XISOBI</Text>
+            <Text style={pdfStyles.yearInfo}>{provinceName} - {currentYear}-yil</Text>
+          </View>
+        </Page>
+      )}
 
       {/* 2-SAHIFA: HISOB */}
       <Page size="A4" style={pdfStyles.page}>
@@ -451,9 +453,23 @@ const HeatPdfDocument = ({ initial, climate, heatingSeason, heatStep, constructi
           </Text>
         </View>
       </Page>
-    </Document >
+    </>
   );
 };
+
+// PDF Document komponenti (alohida eksport uchun)
+const HeatPdfDocument = ({ initial, climate, heatingSeason, heatStep, constructionType }) => (
+  <Document>
+    <HeatPages
+      initial={initial}
+      climate={climate}
+      heatingSeason={heatingSeason}
+      heatStep={heatStep}
+      constructionType={constructionType}
+      showTitlePage={true}
+    />
+  </Document>
+);
 
 // PDF eksport funksiyasi
 export async function exportHeatStepPdfReact({ initial, climate, heatingSeason, heatStep, CONSTRUCTION_TYPES }) {

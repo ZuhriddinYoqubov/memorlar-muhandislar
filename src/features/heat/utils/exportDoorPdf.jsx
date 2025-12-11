@@ -22,8 +22,9 @@ try {
   fontRegistered = false;
 }
 
-const DoorPdfDocument = ({ initial, climate, heatingSeason, heatStep, RoTalSG }) => {
-  console.log('DoorPdfDocument chaqirildi', {
+// Faqat sahifalar komponenti (Document siz) - birlashtirilgan PDF uchun
+export const DoorPages = ({ initial, climate, heatingSeason, heatStep, RoTalSG }) => {
+  console.log('DoorPages chaqirildi', {
     heatStep: !!heatStep,
     initial: !!initial,
     climate: !!climate,
@@ -34,14 +35,12 @@ const DoorPdfDocument = ({ initial, climate, heatingSeason, heatStep, RoTalSG })
   if (!heatStep) {
     console.log('heatStep null, xatolik qaytarilmoqda');
     return (
-      <Document>
-        <Page size="A4" style={pdfStyles.page}>
-          <View style={pdfStyles.pageContent}>
-            <Text style={pdfStyles.pageTitle}>Xatolik</Text>
-            <Text style={pdfStyles.value}>HeatStep ma'lumotlari mavjud emas</Text>
-          </View>
-        </Page>
-      </Document>
+      <Page size="A4" style={pdfStyles.page}>
+        <View style={pdfStyles.pageContent}>
+          <Text style={pdfStyles.pageTitle}>Xatolik</Text>
+          <Text style={pdfStyles.value}>HeatStep ma'lumotlari mavjud emas</Text>
+        </View>
+      </Page>
     );
   }
 
@@ -52,14 +51,12 @@ const DoorPdfDocument = ({ initial, climate, heatingSeason, heatStep, RoTalSG })
   if (!saved.layers || saved.layers.length === 0) {
     console.log('layers mavjud emas, xatolik qaytarilmoqda');
     return (
-      <Document>
-        <Page size="A4" style={pdfStyles.page}>
-          <View style={pdfStyles.pageContent}>
-            <Text style={pdfStyles.pageTitle}>Xatolik</Text>
-            <Text style={pdfStyles.value}>Materiallar qatlami mavjud emas</Text>
-          </View>
-        </Page>
-      </Document>
+      <Page size="A4" style={pdfStyles.page}>
+        <View style={pdfStyles.pageContent}>
+          <Text style={pdfStyles.pageTitle}>Xatolik</Text>
+          <Text style={pdfStyles.value}>Materiallar qatlami mavjud emas</Text>
+        </View>
+      </Page>
     );
   }
 
@@ -116,7 +113,7 @@ const DoorPdfDocument = ({ initial, climate, heatingSeason, heatStep, RoTalSG })
   console.log('PDF komponenti ma\'lumotlari tayyor, render qilinmoqda...');
 
   return (
-    <Document>
+    <>
       <Page size="A4" style={pdfStyles.page}>
         <View style={pdfStyles.pageBorder} fixed />
         <View style={pdfStyles.pageContent}>
@@ -362,9 +359,22 @@ const DoorPdfDocument = ({ initial, climate, heatingSeason, heatStep, RoTalSG })
 
         </View>
       </Page>
-    </Document>
+    </>
   );
 };
+
+// PDF Document komponenti (alohida eksport uchun)
+const DoorPdfDocument = ({ initial, climate, heatingSeason, heatStep, RoTalSG }) => (
+  <Document>
+    <DoorPages
+      initial={initial}
+      climate={climate}
+      heatingSeason={heatingSeason}
+      heatStep={heatStep}
+      RoTalSG={RoTalSG}
+    />
+  </Document>
+);
 
 export async function exportDoorStepPdfReact({ initial, climate, heatingSeason, heatStep, RoTalSG }) {
   try {
