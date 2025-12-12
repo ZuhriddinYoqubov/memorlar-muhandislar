@@ -86,9 +86,30 @@ export const pdfStyles = StyleSheet.create({
     marginRight: 10,
     justifyContent: 'space-between',
   },
+
+  row2: {
+    flexDirection: 'row',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#E8E8E8',
+    paddingTop: 3,
+    paddingBottom: 2,
+    marginLeft: 10,
+    marginRight: 10,
+    justifyContent: 'space-between',
+    borderBottomWidth: 0.5, 
+    borderBottomColor: '#E8E8E8', 
+    marginLeft: 10, 
+    marginRight: 10
+  },
+
   labelFix: {
     fontSize: 9,
     flexWrap: 'wrap',
+  },
+  labelFixSemiBold: {
+    fontSize: 9,
+    flexWrap: 'wrap',
+    fontWeight: 'semibold',
   },
   value: {
     fontSize: 9,
@@ -102,6 +123,14 @@ export const pdfStyles = StyleSheet.create({
     marginRight: 10,
     marginTop: 2,
     marginBottom: 4,
+    fontFamily: 'NotoSansMath',
+  },
+  note2: {
+    fontSize: 8,
+    color: '#777777',
+    marginLeft: 10,
+    marginRight: 10,
+    marginTop: 2,
     fontFamily: 'NotoSansMath',
   },
   card: {

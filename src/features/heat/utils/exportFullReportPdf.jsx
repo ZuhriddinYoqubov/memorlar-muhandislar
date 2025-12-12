@@ -5,6 +5,7 @@ import { pdfStyles } from './pdfStyles';
 import { CONSTRUCTION_TYPES } from '../data/constructionTypes';
 
 // Sahifa komponentlarini import qilish
+import { HeatLossPages } from './exportHeatLossPdf.jsx';
 import { QStepPages } from './exportQStepPdf.jsx';
 import { HeatPages } from './exportHeatPdfReact';
 import { WindowPages } from './exportWindowPdf.jsx';
@@ -74,7 +75,16 @@ const FullReportDocument = ({
 
   return (
     <Document>
-      {/* 1. Q STEP - Isitishga me'yoriy solishtirma issiqlik sarfi */}
+      {/* 1. ISSIQLIK YO'QOTILISHI (8-bo'lim) - vaqtincha birinchi sahifa */}
+      <HeatLossPages
+        initial={initial}
+        climate={climate}
+        heatingSeason={heatingSeason}
+        buildingParams={buildingParams}
+        heatSteps={heatSteps}
+      />
+
+      {/* 2. Q STEP - Isitishga me'yoriy solishtirma issiqlik sarfi */}
       {qStepData && (
         <QStepPages
           initial={initial}
@@ -82,10 +92,11 @@ const FullReportDocument = ({
           heatingSeason={heatingSeason}
           qStepData={qStepData}
           layers={wallLayers}
+          heatSteps={heatSteps}
         />
       )}
 
-      {/* 2. TITLE SAHIFA */}
+      {/* 3. TITLE SAHIFA */}
       <TitlePage initial={initial} />
 
       {/* 3. DEVOR yoki VENTFASAD */}

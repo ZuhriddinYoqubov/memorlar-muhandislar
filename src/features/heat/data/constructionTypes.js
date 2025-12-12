@@ -4,7 +4,8 @@ export const CONSTRUCTION_TYPES = [
     value: "tashqi_devor_ventfasad",
     label: "Tashqi havo bilan shamollatiladigan havo qatlami bo'lgan tashqi devor (ventfasad)",
   },
-  { value: "tom_ochiq_chordoq", label: "Tomyopma va chordoq usti (ochiq chordoq)" },
+  { value: "tomyopma", label: "Tomyopma" },
+  { value: "ochiq_chordoq", label: "Chordoq usti (Ochiq chordoq)" },
   { value: "chordoq_orayopma", label: "Chordoq orayopmalari" },
   { value: "otish_joyi_orayopma", label: "O'tish joylari orayopmalari" },
   {
@@ -25,10 +26,14 @@ export const CONSTRUCTION_TYPES = [
   },
   {
     value: "eshik_darvoza",
-    label: "Eshik va darvoza",
+    label: "Eshik va darvozalar",
   },
   {
     value: "deraza_balkon_eshiklari",
     label: "Deraza va balkon eshiklari",
+  },
+  {
+    value: "fonarlar",
+    label: "Fonarlar",
   },
 ];

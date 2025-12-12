@@ -35,6 +35,25 @@ export function EshikDarvozaStep({
     return Rk + 1 / alphaI + 1 / alphaT;
   }, [Rk, alphaI, alphaT]);
 
+  // Xatolik ro'yxatini hisoblash
+  const validationErrors = useMemo(() => {
+    const errors = [];
+    
+    // Qatlamlar tekshiruvi
+    if (layers && layers.length > 0) {
+      layers.forEach((layer, idx) => {
+        if (!layer.name || layer.name === "Qurilish materialini tanlang") {
+          errors.push(`${idx + 1}-qatlam: Material tanlang`);
+        }
+        if (!layer.thickness_mm || layer.thickness_mm === "" || Number(layer.thickness_mm) <= 0) {
+          errors.push(`${idx + 1}-qatlam: Qalinlikni kiriting`);
+        }
+      });
+    }
+    
+    return errors;
+  }, [layers]);
+
   const [showInitial, setShowInitial] = useState(false);
 
   return (
@@ -126,7 +145,7 @@ export function EshikDarvozaStep({
       <div className="pt-2 border-t border-dashed border-gray-200">
         <p className="flex items-baseline gap-x-2 gap-y-1 font-medium w-full">
           <span className="leading-snug flex-1 text-justify">
-            Konstruksiyaning issiqlik uzatish qarshiligi, R
+            Konstruksiyaning issiqlik uzatilishiga keltirilgan qarshiligi, R
             <sub className="align-baseline text-[0.75em]">o</sub>
           </span>
           <span className="font-semibold text-[#1080c2] text-right whitespace-nowrap">
@@ -135,8 +154,20 @@ export function EshikDarvozaStep({
         </p>
       </div>
 
-      {/* Shart bajarilganligi tekshiruvi */}
-      {Ro != null && RoTalED != null && (
+      {/* Xatolik ro'yxati - hulosa blokidan avval */}
+      {validationErrors.length > 0 && (
+        <div className="mb-4">
+          <p className="text-red-600 text-sm mb-1">Ushbu ma'lumotlarni kiriting:</p>
+          <ul className="text-red-500 text-sm space-y-0.5">
+            {validationErrors.map((error, idx) => (
+              <li key={idx}>• {error}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Shart bajarilganligi tekshiruvi - faqat xatolik yopilganda ko'rinadi */}
+      {validationErrors.length === 0 && Ro != null && RoTalED != null && (
         <div className="mt-4 pt-4 border-t-2 border-gray-300">
           {(() => {
             const RoVal = Ro;

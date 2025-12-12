@@ -86,6 +86,21 @@ export function DerazaBalkonStep({
         return Rk + 1 / alphaI + 1 / alphaT;
     }, [Rk, alphaI, alphaT]);
 
+    // Xatolik ro'yxatini hisoblash
+    const validationErrors = useMemo(() => {
+        const errors = [];
+        
+        // Ikkala variant ham majburiy
+        if (!selectedWindowGroup || !selectedWindowVariant) {
+            errors.push("1-variant: Deraza/fonar turini tanlang");
+        }
+        if (!selectedWindowGroup2 || !selectedWindowVariant2) {
+            errors.push("2-variant: Deraza/fonar turini tanlang");
+        }
+        
+        return errors;
+    }, [selectedWindowGroup, selectedWindowVariant, selectedWindowGroup2, selectedWindowVariant2]);
+
     // Qaysi variant shartni bajarganini aniqlash
     const acceptedVariant = useMemo(() => {
         if (RoTalDF == null) return null;
@@ -124,46 +139,34 @@ export function DerazaBalkonStep({
                 onToggle={() => setShowInitial((v) => !v)}
             />
 
-              <div className="border-t border-dashed border-gray-200 my-4" />
-            {/* Konstruksiya turi tanlash */}
-            <section className="space-y-3">
-                <h3 className="text-lg md:text-xl font-semibold text-gray-900">Konstruksiya turi</h3>
-                <div className="w-full md:w-1/2 lg:w-1/3">
-                    <CustomSelect
-                        value={derazaType}
-                        onChange={(val) => setDerazaType(val)}
-                        options={DERAZA_TYPES}
-                        placeholder="Konstruksiya turini tanlang"
-                    />
-                </div>
+            <div className="border-t border-dashed border-gray-200 my-4" />
 
-                {/* RoTal.D.F. ko'rsatkichi */}
-                {derazaType && RoTalDF != null && (
-                    <div className="mt-1 p-2 ">
-                        <p className="flex items-baseline gap-x-2 gap-y-1 font-medium w-full">
-                            <span className="leading-snug flex-1 text-justify text-sm">
-                                {derazaType === "fonarlar"
-                                    ? "Fonarlarning talab etilgan issiqlik uzatilishiga qarshiligi"
-                                    : "Deraza va balkon eshiklarining talab etilgan issiqlik uzatilishiga qarshiligi"
-                                }, R
-                                <sub className="align-baseline text-[0.7em]">o</sub>
-                                <sup className="align-baseline text-[0.7em]">Tal.D.F.</sup>
-                                {protectionLevel && (
-                                    <span className="text-xs text-gray-600">
-                                        {" "}(issiqlik himoyasining {protectionLevel} darajasi)
-                                    </span>
-                                )}
-                            </span>
-                            <span className="font-semibold text-[#1080c2] text-right whitespace-nowrap">
-                                {RoTalDF.toFixed(2)} m²·°C/Vt
-                            </span>
-                        </p>
-                        <p className="text-xs text-gray-500 italic mt-1">
-                            SHNQ 2.01.04-2018, Issiqlik himoyasi darajasi va D<sub className="text-[0.6em]">is.dav</sub> ga bog'liq holda jadvaldan olinadi.
-                        </p>
-                    </div>
-                )}
-            </section>
+            {/* RoTal.D.F. ko'rsatkichi */}
+            {RoTalDF != null && (
+                <div className="p-2">
+                    <p className="flex items-baseline gap-x-2 gap-y-1 font-medium w-full">
+                        <span className="leading-snug flex-1 text-justify text-sm">
+                            {derazaType === "fonarlar"
+                                ? "Fonarlarning talab etilgan issiqlik uzatilishiga qarshiligi"
+                                : "Deraza va balkon eshiklarining talab etilgan issiqlik uzatilishiga qarshiligi"
+                            }, R
+                            <sub className="align-baseline text-[0.7em]">o</sub>
+                            <sup className="align-baseline text-[0.7em]">Tal.D.F.</sup>
+                            {protectionLevel && (
+                                <span className="text-xs text-gray-600">
+                                    {" "}(issiqlik himoyasining {protectionLevel} darajasi)
+                                </span>
+                            )}
+                        </span>
+                        <span className="font-semibold text-[#1080c2] text-right whitespace-nowrap">
+                            {RoTalDF.toFixed(2)} m²·°C/Vt
+                        </span>
+                    </p>
+                    <p className="text-xs text-gray-500 italic mt-1">
+                        SHNQ 2.01.04-2018, Issiqlik himoyasi darajasi va D<sub className="text-[0.6em]">is.dav</sub> ga bog'liq holda jadvaldan olinadi.
+                    </p>
+                </div>
+            )}
 
             {/* Deraza varianti tanlash – modal orqali*/}
             <section className="space-y-4">
@@ -174,7 +177,7 @@ export function DerazaBalkonStep({
                 <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">1-variant</label>
                     <div className="flex items-center justify-between gap-4">
-                        <div className="flex-1 max-w-2xl">
+                        <div className="flex-1 max-w-3xl">
                             <CustomWindowSelect
                                 groupId={selectedWindowGroup}
                                 typeName={selectedWindowVariant}
@@ -193,7 +196,7 @@ export function DerazaBalkonStep({
                 <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">2-variant</label>
                     <div className="flex items-center justify-between gap-4">
-                        <div className="flex-1 max-w-2xl">
+                        <div className="flex-1 max-w-3xl">
                             <CustomWindowSelect
                                 groupId={selectedWindowGroup2}
                                 typeName={selectedWindowVariant2}
@@ -209,32 +212,64 @@ export function DerazaBalkonStep({
                     </div>
                 </div>
                 <div className="my-8" />
-                {/* Shart tekshiruvi - faqat ikkala variant kiritilganda */}
-                {acceptedVariant && RoTalDF != null && windowRo != null && windowRo2 != null && (
-                    <div className="mt-8 p-4 rounded-xl border-2 "
-                        style={{
-                            backgroundColor: acceptedVariant.Ro >= RoTalDF ? "#f0fdf4" : "#fef2f2",
-                            borderColor: acceptedVariant.Ro >= RoTalDF ? "#86efac" : "#fca5a5"
-                        }}
-                    >
-                        <div className="flex items-start gap-3">
-                          
-                            <div className="flex-1">
-                                <p className="font-semibold text-gray-900 mb-3 text-center ">
-                                    {acceptedVariant.Ro >= RoTalDF
-                                        ? <>Shart {acceptedVariant.number} - variant uchun bajarilmoqda: R<sub className="text-[0.7em]">o</sub><sup className="text-[0.7em]"></sup> = {acceptedVariant.Ro.toFixed(2)} ≥ R<sub className="text-[0.7em]">o</sub><sup className="text-[0.7em]">Tal.D.F.</sup> = {RoTalDF.toFixed(2)}</>
-                                        : `${derazaType === "fonarlar" ? "Fonarlar" : "Deraza va balkon eshiklari"} bo'yicha issiqlik himoyasi darajasi talabi bajarilmadi.`
-                                    }
-                                </p>
-                                {acceptedVariant.Ro >= RoTalDF && (
-                                    <p className="text-xl text-gray-700 font-bold text-center  text-green-700">
-                                        Tanlangan variant issiqlik himoyasi talabiga muvofiq keladi!
-                                    </p>
-                                )}
-                            </div>
-                        </div>
+
+                {/* Xatolik ro'yxati - hulosa blokidan avval */}
+                {validationErrors.length > 0 && (
+                    <div className="mb-4">
+                        <p className="text-red-600 text-sm mb-1">Ushbu ma'lumotlarni kiriting:</p>
+                        <ul className="text-red-500 text-sm space-y-0.5">
+                            {validationErrors.map((error, idx) => (
+                                <li key={idx}>• {error}</li>
+                            ))}
+                        </ul>
                     </div>
                 )}
+
+                {/* Shart tekshiruvi - faqat xatolik yopilganda ko'rinadi */}
+                {validationErrors.length === 0 && windowRo != null && windowRo2 != null && RoTalDF != null && (() => {
+                    // Qaysi variant shartni bajarganini aniqlash
+                    const variant1Passes = windowRo >= RoTalDF;
+                    const variant2Passes = windowRo2 >= RoTalDF;
+                    
+                    let bestVariant = null;
+                    if (variant1Passes && variant2Passes) {
+                        bestVariant = windowRo <= windowRo2 ? { number: 1, Ro: windowRo } : { number: 2, Ro: windowRo2 };
+                    } else if (variant1Passes) {
+                        bestVariant = { number: 1, Ro: windowRo };
+                    } else if (variant2Passes) {
+                        bestVariant = { number: 2, Ro: windowRo2 };
+                    } else {
+                        // Hech qaysi variant o'tmasa, kattaroq qiymatdagisini ko'rsatamiz
+                        bestVariant = windowRo >= windowRo2 ? { number: 1, Ro: windowRo } : { number: 2, Ro: windowRo2 };
+                    }
+                    
+                    const isCompliant = bestVariant.Ro >= RoTalDF;
+                    
+                    return (
+                        <div className="mt-8 p-4 rounded-xl border-2"
+                            style={{
+                                backgroundColor: isCompliant ? "#f0fdf4" : "#fef2f2",
+                                borderColor: isCompliant ? "#86efac" : "#fca5a5"
+                            }}
+                        >
+                            <div className="flex items-start gap-3">
+                                <div className="flex-1">
+                                    <p className="font-semibold text-gray-900 mb-3 text-center">
+                                        {isCompliant
+                                            ? <>Shart {bestVariant.number} - variant uchun bajarilmoqda: R<sub className="text-[0.7em]">o</sub> = {bestVariant.Ro.toFixed(2)} ≥ R<sub className="text-[0.7em]">o</sub><sup className="text-[0.7em]">Tal.D.F.</sup> = {RoTalDF.toFixed(2)}</>
+                                            : `${derazaType === "fonarlar" ? "Fonarlar" : "Deraza va balkon eshiklari"} bo'yicha issiqlik himoyasi darajasi talabi bajarilmadi.`
+                                        }
+                                    </p>
+                                    {isCompliant && (
+                                        <p className="text-xl text-gray-700 font-bold text-center text-green-700">
+                                            Tanlangan variant issiqlik himoyasi talabiga muvofiq keladi!
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })()}
             </section>
 
         </div>

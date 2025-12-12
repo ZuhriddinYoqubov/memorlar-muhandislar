@@ -33,6 +33,21 @@ import { MaterialTreeModal } from "./controls/MaterialTreeModal";
 import { MaterialLayersTable } from "./controls/MaterialLayersTable";
 import { ProtectionLevelInfoModal, RibHeightInfoModal } from "./controls/InfoModals";
 import { CONSTRUCTION_TYPES } from "./data/constructionTypes";
+// Konstruksiya iconlari
+import IconWall from "../../assets/const_icons/wall.svg";
+import IconVentfasad from "../../assets/const_icons/ventfasad.svg";
+import IconTomyopma from "../../assets/const_icons/tomyopma.svg";
+import IconOpenMansard from "../../assets/const_icons/open_mansard.svg";
+import IconMansardOrayopma from "../../assets/const_icons/mansard_orayopma.svg";
+import IconOtishJoylari from "../../assets/const_icons/otish_joylari.svg";
+import IconTashqiHavo from "../../assets/const_icons/tashqi_havo.svg";
+import IconOynaliPodval from "../../assets/const_icons/oynali_podval.svg";
+import IconOynasizPodval from "../../assets/const_icons/oynasiz_podval.svg";
+import IconYerdanPasda from "../../assets/const_icons/yerdan_pasda.svg";
+import IconWindow from "../../assets/const_icons/window.svg";
+import IconFonar from "../../assets/const_icons/fonar.svg";
+import IconDoor from "../../assets/const_icons/door.svg";
+import IconYerPol from "../../assets/const_icons/yer_pol.svg";
 import {
   computeDeltaTt,
   mapConstructionTypeToId,
@@ -215,6 +230,9 @@ export default function HeatWizard() {
   const [selectedWindowGroup2, setSelectedWindowGroup2] = useState(tempDefaults?.selectedWindowGroup2 || "");
   const [selectedWindowVariant2, setSelectedWindowVariant2] = useState(tempDefaults?.selectedWindowVariant2 || "");
 
+  // Yakunlash bosilganmi - Bino parametrlari ko'rinishi uchun
+  const [isFinalized, setIsFinalized] = useState(false);
+
   // Bino parametrlari uchun state
   const [buildingParams, setBuildingParams] = useState({
     objectType: tempDefaults?.buildingParams?.objectType || "",
@@ -265,34 +283,37 @@ export default function HeatWizard() {
   const [heatSteps, setHeatSteps] = useState(tempDefaults?.heatSteps || []);
 
   // UI da ko'rsatiladigan barcha steplar:
-  // - Agar hali birorta issiqlik hisobi tanlanmagan bo'lsa: 1, 2, 3 (placeholder)
-  // - Agar issiqlik hisoblari bo'lsa: 1, 2, 3, 4, 5...n
+  // - Agar hali birorta issiqlik hisobi tanlanmagan bo'lsa: faqat 1-step
+  // - Agar issiqlik hisoblari bo'lsa: 1, 2, 3...n
+  // - Yakunlash bosilgandan keyin: oxirida Bino parametrlari
   const displaySteps = useMemo(() => {
-    const baseSteps = [
-      { kind: "logical", id: "initial", label: "1" },
-      { kind: "logical", id: "building_parameters", label: "2" },
-    ];
+    const initialStep = { kind: "logical", id: "initial", label: "1" };
     
     if (heatSteps.length === 0) {
-      // Agar issiqlik hisoblari bo'lmasa, placeholder step qo'shamiz
-      return [
-        ...baseSteps,
-        { kind: "logical", id: "heat_placeholder", label: "3" },
-      ];
+      // Agar issiqlik hisoblari bo'lmasa, faqat 1-step ko'rinadi
+      return [initialStep];
     }
     
-    // Issiqlik texnik hisobi steplari (3, 4, 5... n)
+    // Issiqlik texnik hisobi steplari (2, 3, 4... n)
     const heatCalcSteps = heatSteps.map((step, idx) => ({
       ...step,
-      label: String(idx + 3), // 3 dan boshlab raqamlash
+      label: String(idx + 2), // 2 dan boshlab raqamlash
     }));
     
-    // Vaqtincha o'chirilgan: normative_q step
-    // const lastStepNumber = 3 + heatSteps.length;
-    // const normativeStep = { kind: "logical", id: "normative_q", label: String(lastStepNumber) };
+    // Yakunlash bosilmagan bo'lsa, Bino parametrlari ko'rinmaydi
+    if (!isFinalized) {
+      return [initialStep, ...heatCalcSteps];
+    }
     
-    return [...baseSteps, ...heatCalcSteps];
-  }, [heatSteps]);
+    // Bino parametrlari oxirida (faqat Yakunlash bosilgandan keyin)
+    const buildingParamsStep = { 
+      kind: "logical", 
+      id: "building_parameters", 
+      label: String(heatSteps.length + 2) // Oxirgi raqam
+    };
+    
+    return [initialStep, ...heatCalcSteps, buildingParamsStep];
+  }, [heatSteps, isFinalized]);
   
   // Validation error flags
   const [showConstructionError, setShowConstructionError] = useState(false); // Konstruksiya turi tanlanmaganligini ko'rsatish
@@ -507,6 +528,27 @@ export default function HeatWizard() {
                 selectedWindowVariant2,
                 RoTalDF,
                 RoTalED,
+                // Deraza/fonar Ro qiymatlari (PDF uchun)
+                windowRo: (() => {
+                  if (selectedWindowGroup && selectedWindowVariant) {
+                    const group = WINDOWS.find((w) => w.id === Number(selectedWindowGroup));
+                    if (group && Array.isArray(group.tur)) {
+                      const variant = group.tur.find((v) => v.name === selectedWindowVariant);
+                      if (variant) return variant.Ro;
+                    }
+                  }
+                  return null;
+                })(),
+                windowRo2: (() => {
+                  if (selectedWindowGroup2 && selectedWindowVariant2) {
+                    const group = WINDOWS.find((w) => w.id === Number(selectedWindowGroup2));
+                    if (group && Array.isArray(group.tur)) {
+                      const variant = group.tur.find((v) => v.name === selectedWindowVariant2);
+                      if (variant) return variant.Ro;
+                    }
+                  }
+                  return null;
+                })(),
                 // Normativ parametrlar (PDF izohlar uchun)
                 delta_t_n: deltaTtResult?.delta_tt,
                 delta_t_n_row: deltaTtResult?.row,
@@ -575,7 +617,14 @@ export default function HeatWizard() {
     // Agar savedState yo'q bo'lsa, default/preset holatni o'rnatish
     setConstructionType(stepMeta.presetConstructionType || "");
     setRibHeightRatio("");
-    setDerazaType("");
+    // presetConstructionType ga qarab derazaType ni o'rnatish
+    if (stepMeta.presetConstructionType === "deraza_balkon_eshiklari") {
+      setDerazaType("deraza_balkon");
+    } else if (stepMeta.presetConstructionType === "fonarlar") {
+      setDerazaType("fonarlar");
+    } else {
+      setDerazaType("");
+    }
     setLayers([{ id: Date.now(), name: "Qurilish materialini tanlang", thickness_mm: "", rho: "", lambda: "", mu: 10 }]);
     setAirLayer({ enabled: false, thickness_mm: "", layerTemp: "positive", foilBothSides: false });
     setSelectedWindowGroup("");
@@ -663,7 +712,8 @@ export default function HeatWizard() {
     const shortNames = {
       "tashqi_devor": "Devor",
       "tashqi_devor_ventfasad": "Ventfasad",
-      "tom_ochiq_chordoq": "Tomyopma",
+      "tomyopma": "Tomyopma",
+      "ochiq_chordoq": "Ochiq chordoq",
       "chordoq_orayopma": "Orayopma",
       "otish_joyi_orayopma": "Orayopma",
       "yertola_tashqi_havo_boglangan": "Orayopma",
@@ -672,6 +722,7 @@ export default function HeatWizard() {
       "isitilmaydigan_texnik_tagxona_pastda": "Orayopma",
       "eshik_darvoza": "Eshik",
       "deraza_balkon_eshiklari": "Deraza",
+      "fonarlar": "Fonarlar",
       "floor_heat_calculation": "Yerdagi pol",
     };
     
@@ -1113,20 +1164,8 @@ export default function HeatWizard() {
         phi_in: false,
       });
 
-      // Agar foydalanuvchi hali biror marta ham dastlabki bosqichdan keyingi bosqichga o'tmagan bo'lsa,
-      // birinchi marta "Keyingi bosqich" bosilganda modul tanlash oynasini ko'rsatamiz.
-      if (!hasLeftInitialOnce) {
-        setShowNextStepChoice(true);
-        return;
-      }
-      // Aks holda (foydalanuvchi allaqachon keyingi bosqichlarga o'tib qaytgan bo'lsa),
-      // oddiy navbatdagi displayStepga o'tkazamiz.
-      setActiveIndex((i) => {
-        const isLast = i >= displaySteps.length - 1;
-        const nextIndex = isLast ? i : i + 1;
-        syncHeatStepState(i, nextIndex);
-        return nextIndex;
-      });
+      // 1-stepda "Keyingi bosqich" bosilganda har doim modal ochiladi
+      setShowNextStepChoice(true);
       return;
     }
 
@@ -1751,25 +1790,11 @@ export default function HeatWizard() {
               }
 
               // Issiqlik steplarini o'chirish uchun handler
-              // Devor/Ventfasad uchun maxsus logika: ikkala tur ham mavjud bo'lsa o'chirish mumkin
+              // Barcha konstruksiya turlari uchun o'chirish mumkin
               const canDeleteHeatStep = (() => {
                 if (!isHeatCalc || ds.kind !== "heat") return false;
-                
-                const stepConstructionType = ds.presetConstructionType || (ds.savedState?.constructionType);
-                
-                // Devor yoki Ventfasad bo'lsa
-                if (stepConstructionType === "tashqi_devor" || stepConstructionType === "tashqi_devor_ventfasad") {
-                  // Devor va Ventfasad steplarini sanash
-                  const wallSteps = heatSteps.filter(step => {
-                    const ct = step.presetConstructionType || step.savedState?.constructionType;
-                    return ct === "tashqi_devor" || ct === "tashqi_devor_ventfasad";
-                  });
-                  // Agar ikkala tur ham mavjud bo'lsa (2 yoki undan ko'p), o'chirish mumkin
-                  return wallSteps.length > 1;
-                }
-                
-                // Boshqa konstruksiya turlari uchun: faqat 1 tadan ko'p bo'lsa o'chirish mumkin
-                return heatSteps.length > 1;
+                // Barcha heat steplarni o'chirish mumkin
+                return true;
               })();
 
               const handleDeleteHeatStep = (e) => {
@@ -1779,10 +1804,15 @@ export default function HeatWizard() {
                 // O'chirilayotgan stepdan oldingi steplar sonini hisoblaymiz
                 const stepsBefore = displaySteps.slice(0, idx).length;
                 
+                // Agar bu oxirgi heat step bo'lsa, 1-stepga qaytamiz
+                const isLastHeatStep = heatSteps.length === 1;
+                
                 setHeatSteps((prev) => prev.filter((h) => h.id !== ds.id));
 
-                // Agar o'chirilayotgan step aktiv bo'lsa, to'g'ri indeksga o'tkazamiz
-                if (isActive) {
+                // Agar oxirgi heat step o'chirilsa, 1-stepga qaytamiz
+                if (isLastHeatStep) {
+                  setActiveIndex(0);
+                } else if (isActive) {
                   // O'chirilgandan keyin yangi displaySteps
                   const newDisplaySteps = displaySteps.filter((h) => h.id !== ds.id);
                   // Oldingi steplar soni yangi massivda ham o'sha bo'ladi
@@ -1909,8 +1939,8 @@ export default function HeatWizard() {
                 </svg>
                 Hozirgi bosqich PDF
               </button>
-              {/* Oxirgi stepda "Umumiy PDF" tugmasi, boshqa steplarda "Orqaga" */}
-              {activeIndex === displaySteps.length - 1 ? (
+              {/* Bino parametrlari stepida "Umumiy PDF" tugmasi, heat steplarda "Yakunlash" */}
+              {currentStepId === "building_parameters" ? (
                 <button
                   type="button"
                   onClick={handleExportFullReportPdf}
@@ -1921,14 +1951,36 @@ export default function HeatWizard() {
                   </svg>
                   Umumiy PDF
                 </button>
-              ) : (
+              ) : currentDisplayStep?.kind === "heat" ? (
+                <WizardSecondaryButton onClick={() => {
+                  // Joriy stepni saqlash
+                  if (currentDisplayStep && currentDisplayStep.kind === "heat") {
+                    saveHeatStepState(currentDisplayStep.id);
+                  }
+                  // Yakunlash - Bino parametrlari ko'rinadi
+                  setIsFinalized(true);
+                  // Bino parametrlari stepiga o'tish (keyingi renderda)
+                  setTimeout(() => {
+                    setActiveIndex(heatSteps.length + 1); // initialStep + heatSteps + buildingParams
+                  }, 0);
+                }}>
+                  Yakunlash
+                </WizardSecondaryButton>
+              ) : currentStepId === "initial" ? null : (
                 <WizardSecondaryButton onClick={goPrev} disabled={activeIndex === 0}>
                   Orqaga
                 </WizardSecondaryButton>
               )}
-              <WizardPrimaryButton onClick={goNext} disabled={activeIndex === displaySteps.length - 1}>
-                Keyingi bosqich
-              </WizardPrimaryButton>
+              {/* 1-stepda Keyingi bosqich, keyingi steplarda Konstruksiya qo'shish */}
+              {currentStepId === "initial" ? (
+                <WizardPrimaryButton onClick={goNext}>
+                  Keyingi bosqich
+                </WizardPrimaryButton>
+              ) : currentStepId === "building_parameters" ? null : (
+                <WizardPrimaryButton onClick={() => setShowNextStepChoice(true)}>
+                  Konstruksiya qo'shish
+                </WizardPrimaryButton>
+              )}
             </div>
           </div>
         </div>
@@ -1962,6 +2014,7 @@ export default function HeatWizard() {
               buildingParams={buildingParams}
               setBuildingParams={setBuildingParams}
               clearTempDefaults={clearTempDefaults}
+              heatSteps={heatSteps}
             />
           )}
 
@@ -2180,33 +2233,41 @@ export default function HeatWizard() {
           )}
         </div>
 
-        {/* Faqat 1-bosqichda kartochkaning eng pastida qo'shimcha, kattaroq "Keyingi bosqich" tugmasi */}
-        {currentStepId === "initial" && (
-          <div className="mt-8 flex justify-center">
-            <WizardPrimaryButton className="px-8" onClick={goNext}>
-              Keyingi bosqich
-            </WizardPrimaryButton>
-          </div>
-        )}
 
-        {/* 3-bosqichda (issiqlik texnik hisobi) "Keyingi bosqich" tugmasi */}
-        {currentStepId === "heat_calc_1" && (
-          <div className="mt-8 flex justify-center">
-            <WizardPrimaryButton className="px-8" onClick={goNext}>
-              Keyingi bosqich
-            </WizardPrimaryButton>
-          </div>
-        )}
-
-        {/* 2-bosqichga o'tishda modul tanlash oynasi – global modal (overlay) */}
+        {/* Konstruksiya qo'shish modal oynasi */}
         {showNextStepChoice &&
           createPortal(
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-              <div className="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white shadow-xl p-5 space-y-4 text-sm text-gray-800" data-region-portal="true">
-                <div className="font-semibold text-gray-900">Keyingi modulni tanlang</div>
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
+              <div className="w-full max-w-4xl rounded-2xl border border-gray-200 bg-white shadow-xl p-5 space-y-4 text-sm text-gray-800 max-h-[85vh] overflow-y-auto" data-region-portal="true">
+                <div className="font-semibold text-gray-900 text-center text-base">Konstruksiya turini tanlang</div>
 
-                {/* Variantlar – asosiy yo'nalishlar */}
-                <div className="space-y-3">
+                {/* Variantlar – grid layout bilan (4x3) */}
+                <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+                  {/* CSS tooltip uchun style */}
+                  <style>{`
+                    .modal-icon-btn { position: relative; }
+                    .modal-icon-btn .tooltip-text {
+                      visibility: hidden;
+                      opacity: 0;
+                      position: absolute;
+                      bottom: 100%;
+                      left: 50%;
+                      transform: translateX(-50%);
+                      background: #1f2937;
+                      color: white;
+                      padding: 4px 8px;
+                      border-radius: 6px;
+                      font-size: 11px;
+                      white-space: nowrap;
+                      z-index: 10;
+                      margin-bottom: 4px;
+                      transition: opacity 0.1s;
+                    }
+                    .modal-icon-btn:hover .tooltip-text {
+                      visibility: visible;
+                      opacity: 1;
+                    }
+                  `}</style>
                   {/* Devor - faqat Devor yo'q bo'lsa ko'rinadi */}
                   {!heatSteps.some(step => {
                     const ct = step.presetConstructionType || step.savedState?.constructionType;
@@ -2214,35 +2275,29 @@ export default function HeatWizard() {
                   }) && (
                     <button
                       type="button"
-                      className="w-full px-4 py-2 rounded-xl border border-[#1080c2]/70 text-[#1080c2] font-semibold hover:bg-[#1080c2]/5 text-left text-xs md:text-sm"
+                      className="modal-icon-btn flex items-center justify-center p-2 rounded-lg hover:bg-[#1080c2]/5 transition-all"
                       onClick={() => {
-                        // Joriy stepni saqlash
                         if (currentDisplayStep && currentDisplayStep.kind === "heat") {
                           saveHeatStepState(currentDisplayStep.id);
                         }
-
-                        // Devor uchun yangi issiqlik hisobi
                         const newId = `heat-${Date.now()}`;
-                        const newStepIndex = 2 + heatSteps.length;
-
+                        const newStepIndex = 1 + heatSteps.length;
                         setHeatSteps((prev) => [
                           ...prev,
                           { id: newId, kind: "heat", presetConstructionType: "tashqi_devor" },
                         ]);
-
-                        // Yangi step uchun bo'sh holat
                         setConstructionType("tashqi_devor");
                         setRibHeightRatio("");
                         setLayers([
                           { id: Date.now(), name: "Qurilish materialini tanlang", thickness_mm: "", rho: "", lambda: "", mu: 10 },
                         ]);
                         setAirLayer({ enabled: false, thickness_mm: "", layerTemp: "positive", foilBothSides: false });
-
                         setActiveIndex(newStepIndex);
                         setShowNextStepChoice(false);
                       }}
                     >
-                      Tashqi devor bo'yicha issiqlik texnik hisob-kitobi
+                      <span className="tooltip-text">{CONSTRUCTION_TYPES.find(ct => ct.value === "tashqi_devor")?.label}</span>
+                      <img src={IconWall} alt="Tashqi devor" className="w-20 h-20 object-contain" />
                     </button>
                   )}
 
@@ -2253,100 +2308,307 @@ export default function HeatWizard() {
                   }) && (
                     <button
                       type="button"
-                      className="w-full px-4 py-2 rounded-xl border border-[#1080c2]/70 text-[#1080c2] font-semibold hover:bg-[#1080c2]/5 text-left text-xs md:text-sm"
+                      className="modal-icon-btn flex items-center justify-center p-2 rounded-lg hover:bg-[#1080c2]/5 transition-all"
                       onClick={() => {
-                        // Joriy stepni saqlash
                         if (currentDisplayStep && currentDisplayStep.kind === "heat") {
                           saveHeatStepState(currentDisplayStep.id);
                         }
-
-                        // Ventfasad uchun yangi issiqlik hisobi
                         const newId = `heat-${Date.now()}`;
-                        const newStepIndex = 2 + heatSteps.length;
-
+                        const newStepIndex = 1 + heatSteps.length;
                         setHeatSteps((prev) => [
                           ...prev,
                           { id: newId, kind: "heat", presetConstructionType: "tashqi_devor_ventfasad" },
                         ]);
-
-                        // Yangi step uchun bo'sh holat
                         setConstructionType("tashqi_devor_ventfasad");
                         setRibHeightRatio("");
                         setLayers([
                           { id: Date.now(), name: "Qurilish materialini tanlang", thickness_mm: "", rho: "", lambda: "", mu: 10 },
                         ]);
                         setAirLayer({ enabled: false, thickness_mm: "", layerTemp: "positive", foilBothSides: false });
-
                         setActiveIndex(newStepIndex);
                         setShowNextStepChoice(false);
                       }}
                     >
-                      Ventfasad bo'yicha issiqlik texnik hisob-kitobi
+                      <span className="tooltip-text">{CONSTRUCTION_TYPES.find(ct => ct.value === "tashqi_devor_ventfasad")?.label}</span>
+                      <img src={IconVentfasad} alt="Ventfasad" className="w-20 h-20 object-contain" />
                     </button>
                   )}
 
-                  {/* To'suvchi konstruksiya (boshqa turlar) - har doim ko'rinadi */}
-                  {!heatSteps.some(step => step.presetConstructionType === null) && (
+                  {/* Tomyopma */}
+                  {!heatSteps.some(step => {
+                    const ct = step.presetConstructionType || step.savedState?.constructionType;
+                    return ct === "tomyopma";
+                  }) && (
                     <button
                       type="button"
-                      className="w-full px-4 py-2 rounded-xl border border-[#1080c2]/70 text-[#1080c2] font-semibold hover:bg-[#1080c2]/5 text-left text-xs md:text-sm"
+                      className="modal-icon-btn flex items-center justify-center p-2 rounded-lg hover:bg-[#1080c2]/5 transition-all"
                       onClick={() => {
-                        // Joriy stepni saqlash
                         if (currentDisplayStep && currentDisplayStep.kind === "heat") {
                           saveHeatStepState(currentDisplayStep.id);
                         }
-
-                        // Umumiy to'suvchi konstruksiya uchun yangi issiqlik hisobi
                         const newId = `heat-${Date.now()}`;
-                        const newStepIndex = 2 + heatSteps.length;
-
+                        const newStepIndex = 1 + heatSteps.length;
                         setHeatSteps((prev) => [
                           ...prev,
-                          { id: newId, kind: "heat", presetConstructionType: null },
+                          { id: newId, kind: "heat", presetConstructionType: "tomyopma" },
                         ]);
-
-                        // Yangi step uchun bo'sh holat
-                        setConstructionType("");
+                        setConstructionType("tomyopma");
                         setRibHeightRatio("");
                         setLayers([
                           { id: Date.now(), name: "Qurilish materialini tanlang", thickness_mm: "", rho: "", lambda: "", mu: 10 },
                         ]);
                         setAirLayer({ enabled: false, thickness_mm: "", layerTemp: "positive", foilBothSides: false });
-
                         setActiveIndex(newStepIndex);
                         setShowNextStepChoice(false);
                       }}
                     >
-                      Boshqa to'suvchi konstruksiya bo'yicha issiqlik texnik hisob-kitobi
+                      <span className="tooltip-text">{CONSTRUCTION_TYPES.find(ct => ct.value === "tomyopma")?.label}</span>
+                      <img src={IconTomyopma} alt="Tomyopma" className="w-20 h-20 object-contain" />
                     </button>
                   )}
 
-                  {/* Oyna, eshik va pol tugmalari - faqat to'suvchi konstruksiya hisobi bajarilganda ko'rinadi */}
-                  {(() => {
-                    const hasEnclosureCalculation = heatSteps.some(step => 
-                      step.presetConstructionType !== "eshik_darvoza" && 
-                      step.presetConstructionType !== "deraza_balkon_eshiklari" &&
-                      step.presetConstructionType !== "floor_heat_calculation"
-                    );
-                    console.log("🔍 Modal: heatSteps =", heatSteps);
-                    console.log("🔍 Modal: hasEnclosureCalculation =", hasEnclosureCalculation);
-                    return hasEnclosureCalculation;
-                  })() && (
-                    <>
-                      {!heatSteps.some(step => step.presetConstructionType === "deraza_balkon_eshiklari") && (
+                      {/* Ochiq chordoq (alohida) */}
+                      {!heatSteps.some(step => {
+                        const ct = step.presetConstructionType || step.savedState?.constructionType;
+                        return ct === "ochiq_chordoq";
+                      }) && (
                         <button
                           type="button"
-                          className="w-full px-4 py-2 rounded-xl border border-[#1080c2]/70 text-[#1080c2] font-semibold hover:bg-[#1080c2]/5 text-left text-xs md:text-sm"
+                          className="modal-icon-btn flex items-center justify-center p-2 rounded-lg hover:bg-[#1080c2]/5 transition-all"
                           onClick={() => {
-                            // Joriy stepni saqlash
                             if (currentDisplayStep && currentDisplayStep.kind === "heat") {
                               saveHeatStepState(currentDisplayStep.id);
                             }
-
-                            // Deraza/balkon eshiklari uchun yangi issiqlik hisobi
                             const newId = `heat-${Date.now()}`;
-                            const newStepIndex = 2 + heatSteps.length; // 0:initial, 1:building, 2+: heat steps
+                            const newStepIndex = 1 + heatSteps.length;
+                            setHeatSteps((prev) => [
+                              ...prev,
+                              { id: newId, kind: "heat", presetConstructionType: "ochiq_chordoq" },
+                            ]);
+                            setConstructionType("ochiq_chordoq");
+                            setRibHeightRatio("");
+                            setLayers([
+                              { id: Date.now(), name: "Qurilish materialini tanlang", thickness_mm: "", rho: "", lambda: "", mu: 10 },
+                            ]);
+                            setAirLayer({ enabled: false, thickness_mm: "", layerTemp: "positive", foilBothSides: false });
+                            setActiveIndex(newStepIndex);
+                            setShowNextStepChoice(false);
+                          }}
+                        >
+                          <span className="tooltip-text">{CONSTRUCTION_TYPES.find(ct => ct.value === "ochiq_chordoq")?.label}</span>
+                          <img src={IconOpenMansard} alt="Ochiq chordoq" className="w-20 h-20 object-contain" />
+                        </button>
+                      )}
 
+                      {/* Chordoq orayopmalari */}
+                      {!heatSteps.some(step => {
+                        const ct = step.presetConstructionType || step.savedState?.constructionType;
+                        return ct === "chordoq_orayopma";
+                      }) && (
+                        <button
+                          type="button"
+                          className="modal-icon-btn flex items-center justify-center p-2 rounded-lg hover:bg-[#1080c2]/5 transition-all"
+                          onClick={() => {
+                            if (currentDisplayStep && currentDisplayStep.kind === "heat") {
+                              saveHeatStepState(currentDisplayStep.id);
+                            }
+                            const newId = `heat-${Date.now()}`;
+                            const newStepIndex = 1 + heatSteps.length;
+                            setHeatSteps((prev) => [
+                              ...prev,
+                              { id: newId, kind: "heat", presetConstructionType: "chordoq_orayopma" },
+                            ]);
+                            setConstructionType("chordoq_orayopma");
+                            setRibHeightRatio("");
+                            setLayers([
+                              { id: Date.now(), name: "Qurilish materialini tanlang", thickness_mm: "", rho: "", lambda: "", mu: 10 },
+                            ]);
+                            setAirLayer({ enabled: false, thickness_mm: "", layerTemp: "positive", foilBothSides: false });
+                            setActiveIndex(newStepIndex);
+                            setShowNextStepChoice(false);
+                          }}
+                        >
+                          <span className="tooltip-text">{CONSTRUCTION_TYPES.find(ct => ct.value === "chordoq_orayopma")?.label}</span>
+                          <img src={IconMansardOrayopma} alt="Chordoq orayopmalari" className="w-20 h-20 object-contain" />
+                        </button>
+                      )}
+
+                      {/* O'tish joylari orayopmalari */}
+                      {!heatSteps.some(step => {
+                        const ct = step.presetConstructionType || step.savedState?.constructionType;
+                        return ct === "otish_joyi_orayopma";
+                      }) && (
+                        <button
+                          type="button"
+                          className="modal-icon-btn flex items-center justify-center p-2 rounded-lg hover:bg-[#1080c2]/5 transition-all"
+                          onClick={() => {
+                            if (currentDisplayStep && currentDisplayStep.kind === "heat") {
+                              saveHeatStepState(currentDisplayStep.id);
+                            }
+                            const newId = `heat-${Date.now()}`;
+                            const newStepIndex = 1 + heatSteps.length;
+                            setHeatSteps((prev) => [
+                              ...prev,
+                              { id: newId, kind: "heat", presetConstructionType: "otish_joyi_orayopma" },
+                            ]);
+                            setConstructionType("otish_joyi_orayopma");
+                            setRibHeightRatio("");
+                            setLayers([
+                              { id: Date.now(), name: "Qurilish materialini tanlang", thickness_mm: "", rho: "", lambda: "", mu: 10 },
+                            ]);
+                            setAirLayer({ enabled: false, thickness_mm: "", layerTemp: "positive", foilBothSides: false });
+                            setActiveIndex(newStepIndex);
+                            setShowNextStepChoice(false);
+                          }}
+                        >
+                          <span className="tooltip-text">{CONSTRUCTION_TYPES.find(ct => ct.value === "otish_joyi_orayopma")?.label}</span>
+                          <img src={IconOtishJoylari} alt="O'tish joylari" className="w-20 h-20 object-contain" />
+                        </button>
+                      )}
+
+                      {/* Yerto'la 1: Tashqi havo bilan bog'langan */}
+                      {!heatSteps.some(step => {
+                        const ct = step.presetConstructionType || step.savedState?.constructionType;
+                        return ct === "yertola_tashqi_havo_boglangan";
+                      }) && (
+                        <button
+                          type="button"
+                          className="modal-icon-btn flex items-center justify-center p-2 rounded-lg hover:bg-[#1080c2]/5 transition-all"
+                          onClick={() => {
+                            if (currentDisplayStep && currentDisplayStep.kind === "heat") {
+                              saveHeatStepState(currentDisplayStep.id);
+                            }
+                            const newId = `heat-${Date.now()}`;
+                            const newStepIndex = 1 + heatSteps.length;
+                            setHeatSteps((prev) => [
+                              ...prev,
+                              { id: newId, kind: "heat", presetConstructionType: "yertola_tashqi_havo_boglangan" },
+                            ]);
+                            setConstructionType("yertola_tashqi_havo_boglangan");
+                            setRibHeightRatio("");
+                            setLayers([
+                              { id: Date.now(), name: "Qurilish materialini tanlang", thickness_mm: "", rho: "", lambda: "", mu: 10 },
+                            ]);
+                            setAirLayer({ enabled: false, thickness_mm: "", layerTemp: "positive", foilBothSides: false });
+                            setActiveIndex(newStepIndex);
+                            setShowNextStepChoice(false);
+                          }}
+                        >
+                          <span className="tooltip-text">{CONSTRUCTION_TYPES.find(ct => ct.value === "yertola_tashqi_havo_boglangan")?.label}</span>
+                          <img src={IconTashqiHavo} alt="Tashqi havo bilan bog'langan yerto'la" className="w-20 h-20 object-contain" />
+                        </button>
+                      )}
+
+                      {/* Yerto'la 2: Yorug'lik oraliqlari bo'lgan */}
+                      {!heatSteps.some(step => {
+                        const ct = step.presetConstructionType || step.savedState?.constructionType;
+                        return ct === "isitilmaydigan_yertola_yoruglik_oraliqli";
+                      }) && (
+                        <button
+                          type="button"
+                          className="modal-icon-btn flex items-center justify-center p-2 rounded-lg hover:bg-[#1080c2]/5 transition-all"
+                          onClick={() => {
+                            if (currentDisplayStep && currentDisplayStep.kind === "heat") {
+                              saveHeatStepState(currentDisplayStep.id);
+                            }
+                            const newId = `heat-${Date.now()}`;
+                            const newStepIndex = 1 + heatSteps.length;
+                            setHeatSteps((prev) => [
+                              ...prev,
+                              { id: newId, kind: "heat", presetConstructionType: "isitilmaydigan_yertola_yoruglik_oraliqli" },
+                            ]);
+                            setConstructionType("isitilmaydigan_yertola_yoruglik_oraliqli");
+                            setRibHeightRatio("");
+                            setLayers([
+                              { id: Date.now(), name: "Qurilish materialini tanlang", thickness_mm: "", rho: "", lambda: "", mu: 10 },
+                            ]);
+                            setAirLayer({ enabled: false, thickness_mm: "", layerTemp: "positive", foilBothSides: false });
+                            setActiveIndex(newStepIndex);
+                            setShowNextStepChoice(false);
+                          }}
+                        >
+                          <span className="tooltip-text">{CONSTRUCTION_TYPES.find(ct => ct.value === "isitilmaydigan_yertola_yoruglik_oraliqli")?.label}</span>
+                          <img src={IconOynaliPodval} alt="Yorug'lik oraliqlari bo'lgan yerto'la" className="w-20 h-20 object-contain" />
+                        </button>
+                      )}
+
+                      {/* Yerto'la 3: Yer sathidan yuqorida, yorug'liksiz */}
+                      {!heatSteps.some(step => {
+                        const ct = step.presetConstructionType || step.savedState?.constructionType;
+                        return ct === "isitilmaydigan_yertola_yuqori_yorugliksiz";
+                      }) && (
+                        <button
+                          type="button"
+                          className="modal-icon-btn flex items-center justify-center p-2 rounded-lg hover:bg-[#1080c2]/5 transition-all"
+                          onClick={() => {
+                            if (currentDisplayStep && currentDisplayStep.kind === "heat") {
+                              saveHeatStepState(currentDisplayStep.id);
+                            }
+                            const newId = `heat-${Date.now()}`;
+                            const newStepIndex = 1 + heatSteps.length;
+                            setHeatSteps((prev) => [
+                              ...prev,
+                              { id: newId, kind: "heat", presetConstructionType: "isitilmaydigan_yertola_yuqori_yorugliksiz" },
+                            ]);
+                            setConstructionType("isitilmaydigan_yertola_yuqori_yorugliksiz");
+                            setRibHeightRatio("");
+                            setLayers([
+                              { id: Date.now(), name: "Qurilish materialini tanlang", thickness_mm: "", rho: "", lambda: "", mu: 10 },
+                            ]);
+                            setAirLayer({ enabled: false, thickness_mm: "", layerTemp: "positive", foilBothSides: false });
+                            setActiveIndex(newStepIndex);
+                            setShowNextStepChoice(false);
+                          }}
+                        >
+                          <span className="tooltip-text">{CONSTRUCTION_TYPES.find(ct => ct.value === "isitilmaydigan_yertola_yuqori_yorugliksiz")?.label}</span>
+                          <img src={IconOynasizPodval} alt="Yer sathidan yuqorida joylashgan yerto'la" className="w-20 h-20 object-contain" />
+                        </button>
+                      )}
+
+                      {/* Yerto'la 4: Yer sathidan pastda */}
+                      {!heatSteps.some(step => {
+                        const ct = step.presetConstructionType || step.savedState?.constructionType;
+                        return ct === "isitilmaydigan_texnik_tagxona_pastda";
+                      }) && (
+                        <button
+                          type="button"
+                          className="modal-icon-btn flex items-center justify-center p-2 rounded-lg hover:bg-[#1080c2]/5 transition-all"
+                          onClick={() => {
+                            if (currentDisplayStep && currentDisplayStep.kind === "heat") {
+                              saveHeatStepState(currentDisplayStep.id);
+                            }
+                            const newId = `heat-${Date.now()}`;
+                            const newStepIndex = 1 + heatSteps.length;
+                            setHeatSteps((prev) => [
+                              ...prev,
+                              { id: newId, kind: "heat", presetConstructionType: "isitilmaydigan_texnik_tagxona_pastda" },
+                            ]);
+                            setConstructionType("isitilmaydigan_texnik_tagxona_pastda");
+                            setRibHeightRatio("");
+                            setLayers([
+                              { id: Date.now(), name: "Qurilish materialini tanlang", thickness_mm: "", rho: "", lambda: "", mu: 10 },
+                            ]);
+                            setAirLayer({ enabled: false, thickness_mm: "", layerTemp: "positive", foilBothSides: false });
+                            setActiveIndex(newStepIndex);
+                            setShowNextStepChoice(false);
+                          }}
+                        >
+                          <span className="tooltip-text">{CONSTRUCTION_TYPES.find(ct => ct.value === "isitilmaydigan_texnik_tagxona_pastda")?.label}</span>
+                          <img src={IconYerdanPasda} alt="Yer sathidan pastda joylashgan texnik tagxona" className="w-20 h-20 object-contain" />
+                        </button>
+                      )}
+
+                  {/* Deraza va balkon eshiklari */}
+                      {!heatSteps.some(step => step.presetConstructionType === "deraza_balkon_eshiklari") && (
+                        <button
+                          type="button"
+                          className="modal-icon-btn flex items-center justify-center p-2 rounded-lg hover:bg-[#1080c2]/5 transition-all"
+                          onClick={() => {
+                            if (currentDisplayStep && currentDisplayStep.kind === "heat") {
+                              saveHeatStepState(currentDisplayStep.id);
+                            }
+                            const newId = `heat-${Date.now()}`;
+                            const newStepIndex = 1 + heatSteps.length;
                             setHeatSteps((prev) => [
                               ...prev,
                               {
@@ -2355,29 +2617,55 @@ export default function HeatWizard() {
                                 presetConstructionType: "deraza_balkon_eshiklari",
                               },
                             ]);
-                            
+                            setDerazaType("deraza_balkon");
                             setActiveIndex(newStepIndex);
                             setShowNextStepChoice(false);
                           }}
                         >
-                          Deraza va balkon eshiklari bo'yicha issiqlik texnik hisob-kitobi
+                          <span className="tooltip-text">{CONSTRUCTION_TYPES.find(ct => ct.value === "deraza_balkon_eshiklari")?.label}</span>
+                          <img src={IconWindow} alt="Deraza va balkon eshiklari" className="w-20 h-20 object-contain" />
+                        </button>
+                      )}
+
+                      {/* Fonarlar */}
+                      {!heatSteps.some(step => step.presetConstructionType === "fonarlar") && (
+                        <button
+                          type="button"
+                          className="modal-icon-btn flex items-center justify-center p-2 rounded-lg hover:bg-[#1080c2]/5 transition-all"
+                          onClick={() => {
+                            if (currentDisplayStep && currentDisplayStep.kind === "heat") {
+                              saveHeatStepState(currentDisplayStep.id);
+                            }
+                            const newId = `heat-${Date.now()}`;
+                            const newStepIndex = 1 + heatSteps.length;
+                            setHeatSteps((prev) => [
+                              ...prev,
+                              {
+                                id: newId,
+                                kind: "heat",
+                                presetConstructionType: "fonarlar",
+                              },
+                            ]);
+                            setDerazaType("fonarlar");
+                            setActiveIndex(newStepIndex);
+                            setShowNextStepChoice(false);
+                          }}
+                        >
+                          <span className="tooltip-text">{CONSTRUCTION_TYPES.find(ct => ct.value === "fonarlar")?.label}</span>
+                          <img src={IconFonar} alt="Fonarlar" className="w-20 h-20 object-contain" />
                         </button>
                       )}
 
                       {!heatSteps.some(step => step.presetConstructionType === "eshik_darvoza") && (
                         <button
                           type="button"
-                          className="w-full px-4 py-2 rounded-xl border border-[#1080c2]/70 text-[#1080c2] font-semibold hover:bg-[#1080c2]/5 text-left text-xs md:text-sm"
+                          className="modal-icon-btn flex items-center justify-center p-2 rounded-lg hover:bg-[#1080c2]/5 transition-all"
                           onClick={() => {
-                            // Joriy stepni saqlash
                             if (currentDisplayStep && currentDisplayStep.kind === "heat") {
                               saveHeatStepState(currentDisplayStep.id);
                             }
-
-                            // Eshik/darvozalar uchun yangi issiqlik hisobi
                             const newId = `heat-${Date.now()}`;
-                            const newStepIndex = 2 + heatSteps.length; // 0:initial, 1:building, 2+: heat steps
-
+                            const newStepIndex = 1 + heatSteps.length;
                             setHeatSteps((prev) => [
                               ...prev,
                               {
@@ -2386,29 +2674,25 @@ export default function HeatWizard() {
                                 presetConstructionType: "eshik_darvoza",
                               },
                             ]);
-                            
                             setActiveIndex(newStepIndex);
                             setShowNextStepChoice(false);
                           }}
                         >
-                          Eshik va darvozalar bo'yicha issiqlik texnik hisob-kitobi
+                          <span className="tooltip-text">{CONSTRUCTION_TYPES.find(ct => ct.value === "eshik_darvoza")?.label}</span>
+                          <img src={IconDoor} alt="Eshik va darvozalar" className="w-20 h-20 object-contain" />
                         </button>
                       )}
 
                       {!heatSteps.some(step => step.presetConstructionType === "floor_heat_calculation") && (
                         <button
                           type="button"
-                          className="w-full px-4 py-2 rounded-xl border border-[#1080c2]/70 text-[#1080c2] font-semibold hover:bg-[#1080c2]/5 text-left text-xs md:text-sm"
+                          className="modal-icon-btn flex items-center justify-center p-2 rounded-lg hover:bg-[#1080c2]/5 transition-all"
                           onClick={() => {
-                            // Joriy stepni saqlash
                             if (currentDisplayStep && currentDisplayStep.kind === "heat") {
                               saveHeatStepState(currentDisplayStep.id);
                             }
-
-                            // Yerdagi pol uchun yangi issiqlik hisobi
                             const newId = `heat-${Date.now()}`;
-                            const newStepIndex = 2 + heatSteps.length; // 0:initial, 1:building, 2+: heat steps
-
+                            const newStepIndex = 1 + heatSteps.length;
                             setHeatSteps((prev) => [
                               ...prev,
                               {
@@ -2417,16 +2701,14 @@ export default function HeatWizard() {
                                 presetConstructionType: "floor_heat_calculation",
                               },
                             ]);
-                            
                             setActiveIndex(newStepIndex);
                             setShowNextStepChoice(false);
                           }}
                         >
-                          Yerdagi pol bo'yicha issiqlik texnik hisob-kitobi
+                          <span className="tooltip-text">Yerdagi pol</span>
+                          <img src={IconYerPol} alt="Yerdagi pol" className="w-20 h-20 object-contain" />
                         </button>
                       )}
-                    </>
-                  )}
 
                   {/* Vaqtincha o'chirilgan: Isitishga me'yoriy solishtirma issiqlik sarfi hisobi */}
                   {/* 

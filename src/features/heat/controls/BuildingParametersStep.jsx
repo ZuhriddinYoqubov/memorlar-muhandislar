@@ -5,12 +5,6 @@ import { FieldHelp } from "./FieldHelp";
 import { CustomSelect } from "./HeatSelects";
 import { exportNormativeStepPdf } from "../utils/exportHeatPdf";
 
-const ROOF_TYPES = [
-    { value: "tomyopma", label: "Tomyopma" },
-    { value: "ochiq_chortoq", label: "Ochiq chordoq" },
-    { value: "chortoq_orayopmasi", label: "Chordoq orayopmasi" },
-];
-
 const OBJECT_TYPES = [
     { value: "turar_joylar", label: "Turar joylar" },
     { value: "yakka_turjoy", label: "Yakka tartibdagi turar joylar" },
@@ -31,6 +25,13 @@ const OBJECT_TYPES = [
     { value: "boshqalar", label: "Boshqalar" },
 ];
 
+// Orayopma turlari va ularning nomlari
+const ORAYOPMA_TYPES = {
+    tomyopma: { label: "Tomyopma", subscript: "R", fieldKey: "A_tomyopma" },
+    ochiq_chortoq: { label: "Chordoq usti (Ochiq chordoq)", subscript: "R.och", fieldKey: "A_ochiq_chortoq" },
+    chordoq_orayopma: { label: "Chordoq orayopmasi", subscript: "R.ch", fieldKey: "A_chordoq_orayopma" },
+};
+
 export function BuildingParametersStep({
     objectName,
     climate,
@@ -39,7 +40,8 @@ export function BuildingParametersStep({
     onExportPDF,
     buildingParams = {},
     setBuildingParams,
-    clearTempDefaults
+    clearTempDefaults,
+    heatSteps = []
 }) {
     // State'larni propsdan olish
     const objectType = buildingParams.objectType || "";
@@ -51,12 +53,13 @@ export function BuildingParametersStep({
     const V_h = buildingParams.V_h || "";
     const weeklyHours = buildingParams.weeklyHours || "";
     const Xodim = buildingParams.Xodim || "";
-    const roofType = buildingParams.roofType || "";
+    // roofType endi ishlatilmaydi - dinamik ravishda heatSteps dan olinadi
     const A_W = buildingParams.A_W || "";
     const A_L = buildingParams.A_L || "";
+    const A_L2 = buildingParams.A_L2 || ""; // Fonarlar maydoni
     const A_D = buildingParams.A_D || "";
     const A_CG = buildingParams.A_CG || "";
-    const A_G = buildingParams.A_G || "";
+    // A_G endi alohida orayopmalar uchun dinamik - buildingParams.orayopmaAreas dan olinadi
     const A_R = buildingParams.A_R || "";
 
     // State update funksiyalari
@@ -74,12 +77,55 @@ export function BuildingParametersStep({
         return fas - AL - AD;
     }, [A_W, A_L, A_D]);
 
-    // ΣA_G = A_CG + A_G
+    // HeatSteps dan bajarilgan orayopma turlarini aniqlash
+    const completedOrayopmaTypes = useMemo(() => {
+        const types = [];
+        heatSteps.forEach(step => {
+            const ct = step.presetConstructionType || step.savedState?.constructionType;
+            if (ct === "tomyopma") {
+                types.push("tomyopma");
+            } else if (ct === "ochiq_chordoq") {
+                types.push("ochiq_chortoq");
+            } else if (ct === "chordoq_orayopma") {
+                types.push("chordoq_orayopma");
+            }
+        });
+        return [...new Set(types)]; // Takrorlanishlarni olib tashlash
+    }, [heatSteps]);
+
+    // Fonarlar ITH ishlangan bo'lsa
+    const hasFonar = useMemo(() => {
+        return heatSteps.some(step => {
+            const ct = step.presetConstructionType || step.savedState?.constructionType;
+            return ct === "fonarlar";
+        });
+    }, [heatSteps]);
+
+    // Orayopma maydonlari (dinamik)
+    const orayopmaAreas = buildingParams.orayopmaAreas || {};
+
+    // ΣA_G = A_CG + barcha orayopma maydonlari yig'indisi
     const sumA_G = useMemo(() => {
         const cg = Number(A_CG) || 0;
-        const g = Number(A_G) || 0;
-        return cg + g;
-    }, [A_CG, A_G]);
+        let totalOrayopma = 0;
+        Object.values(orayopmaAreas).forEach(val => {
+            totalOrayopma += Number(val) || 0;
+        });
+        return cg + totalOrayopma;
+    }, [A_CG, orayopmaAreas]);
+
+    // Orayopma maydonini yangilash
+    const updateOrayopmaArea = (fieldKey, value) => {
+        if (setBuildingParams) {
+            setBuildingParams(prev => ({
+                ...prev,
+                orayopmaAreas: {
+                    ...prev.orayopmaAreas,
+                    [fieldKey]: value
+                }
+            }));
+        }
+    };
 
     // Validatsiya funksiyalari
     const validateFloat = (value) => {
@@ -213,22 +259,17 @@ export function BuildingParametersStep({
                                 inputMode="numeric"
                             />
                             
-                            {/* Tomyopma turi */}
-                            <tr className="border-t border-[#E5E7EB] h-[45px]">
-                                <td className="py-2 px-3 text-sm font-medium text-gray-700">
-                                    Tomyopma turi
-                                </td>
-                                <td className="py-2 px-3">
-                                    <div className="w-[60%] ml-auto">
-                                        <CustomSelect
-                                            value={roofType}
-                                            onChange={(value) => updateBuildingParam('roofType', value)}
-                                            options={ROOF_TYPES}
-                                            placeholder="Tanlang"
-                                        />
-                                    </div>
-                                </td>
-                            </tr>
+                            {/* Tomyopma turi - dinamik ravishda heatSteps dan olinadi */}
+                            {completedOrayopmaTypes.length > 0 && (
+                                <tr className="border-t border-[#E5E7EB] h-[45px]">
+                                    <td className="py-2 px-3 text-sm font-medium text-gray-700">
+                                        Tomyopma turi
+                                    </td>
+                                    <td className="py-2 px-3 text-right text-sm text-gray-900">
+                                        {completedOrayopmaTypes.map(type => ORAYOPMA_TYPES[type]?.label || type).join(", ")}
+                                    </td>
+                                </tr>
+                            )}
 
                             {/* A_Fas */}
                             <BuildingParameterInput
@@ -257,6 +298,17 @@ export function BuildingParametersStep({
                                 unit="m²"
                             />
 
+                            {/* A_L2 - faqat fonar ITH ishlangan bo'lsa */}
+                            {hasFonar && (
+                                <BuildingParameterInput
+                                    label="Fonarlar maydoni, A"
+                                    subscript="L2"
+                                    value={A_L2}
+                                    onChange={(e) => updateBuildingParam('A_L2', validateFloat(e.target.value))}
+                                    unit="m²"
+                                />
+                            )}
+
                             {/* A_D */}
                             <BuildingParameterInput
                                 label="Eshiklar maydoni, A"
@@ -275,32 +327,32 @@ export function BuildingParametersStep({
                                 unit="m²"
                             />
 
-                            {/* A_G */}
-                            <BuildingParameterInput
-                                label="Isitilmaydigan yerto'la ustidagi pol maydoni, A"
-                                subscript="G"
-                                value={A_G}
-                                onChange={(e) => updateBuildingParam('A_G', validateFloat(e.target.value))}
-                                unit="m²"
-                            />
+                            {/* Dinamik orayopma maydonlari - har bir bajarilgan orayopma turi uchun */}
+                            {completedOrayopmaTypes.map(type => {
+                                const config = ORAYOPMA_TYPES[type];
+                                if (!config) return null;
+                                return (
+                                    <BuildingParameterInput
+                                        key={type}
+                                        label={`${config.label} maydoni, A`}
+                                        subscript={config.subscript}
+                                        value={orayopmaAreas[config.fieldKey] || ""}
+                                        onChange={(e) => updateOrayopmaArea(config.fieldKey, validateFloat(e.target.value))}
+                                        unit="m²"
+                                    />
+                                );
+                            })}
 
-                            {/* ΣA_G */}
-                            <BuildingParameterInput
-                                label="Jami pol maydoni, ΣA"
-                                subscript="G"
-                                value={sumA_G}
-                                isReadOnly={true}
-                                unit="m²"
-                            />
-
-                            {/* A_R */}
-                            <BuildingParameterInput
-                                label="Tomyopmalar (yoki chordoq orayopmalari)ning jami maydoni, A"
-                                subscript="R"
-                                value={A_R}
-                                onChange={(e) => updateBuildingParam('A_R', validateFloat(e.target.value))}
-                                unit="m²"
-                            />
+                            {/* ΣA_G - faqat orayopma maydonlari bo'lsa ko'rsatiladi */}
+                            {completedOrayopmaTypes.length > 0 && (
+                                <BuildingParameterInput
+                                    label="Jami orayopma maydoni, ΣA"
+                                    subscript="R"
+                                    value={sumA_G}
+                                    isReadOnly={true}
+                                    unit="m²"
+                                />
+                            )}
 
                             {/* V_h */}
                             <BuildingParameterInput

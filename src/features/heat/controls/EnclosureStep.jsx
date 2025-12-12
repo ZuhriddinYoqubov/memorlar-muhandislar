@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { InitialDataBlock } from "./InitialDataBlock";
 import { CustomSelect } from "./HeatSelects";
 import { MaterialLayersTable } from "./MaterialLayersTable";
@@ -66,6 +66,37 @@ export function EnclosureStep({
   // Hozirgi konstruksiya turini aniqlash
   const currentConstructionType = constructionType;
 
+  // Xatolik ro'yxatini hisoblash
+  const validationErrors = useMemo(() => {
+    const errors = [];
+    
+    // Faqat to'suvchi konstruksiyalar uchun (deraza, fonar, eshik emas)
+    if (currentConstructionType && 
+        currentConstructionType !== "eshik_darvoza" && 
+        currentConstructionType !== "deraza_balkon_eshiklari" && 
+        currentConstructionType !== "fonarlar") {
+      
+      // Qatlamlar tekshiruvi
+      if (layers && layers.length > 0) {
+        layers.forEach((layer, idx) => {
+          if (!layer.name || layer.name === "Qurilish materialini tanlang") {
+            errors.push(`${idx + 1}-qatlam: Material tanlang`);
+          }
+          if (!layer.thickness_mm || layer.thickness_mm === "" || Number(layer.thickness_mm) <= 0) {
+            errors.push(`${idx + 1}-qatlam: Qalinlikni kiriting`);
+          }
+        });
+      }
+      
+      // Qovurg'ali plita uchun h/a nisbati
+      if (currentConstructionType === "qovurg'ali_plita" && !ribHeightRatio) {
+        errors.push("Qovurg'a balandligi nisbatini tanlang");
+      }
+    }
+    
+    return errors;
+  }, [currentConstructionType, layers, ribHeightRatio]);
+
   return (
     <div className="space-y-6 text-sm text-gray-700">
       {currentConstructionType === "eshik_darvoza" && (
@@ -93,7 +124,7 @@ export function EnclosureStep({
         />
       )}
 
-      {currentConstructionType === "deraza_balkon_eshiklari" && (
+      {(currentConstructionType === "deraza_balkon_eshiklari" || currentConstructionType === "fonarlar") && (
         <DerazaBalkonStep
           hududLabel={hududLabel}
           climate={climate}
@@ -130,7 +161,7 @@ export function EnclosureStep({
         />
       )}
 
-      {currentConstructionType !== "eshik_darvoza" && currentConstructionType !== "deraza_balkon_eshiklari" && (
+      {currentConstructionType !== "eshik_darvoza" && currentConstructionType !== "deraza_balkon_eshiklari" && currentConstructionType !== "fonarlar" && (
         <>
           <InitialDataBlock
             hududLabel={hududLabel}
@@ -143,50 +174,8 @@ export function EnclosureStep({
 
           <div className="border-t border-dashed border-gray-200 my-4" />
 
-          <div >
-            {/* 1-qism: Konstruksiya turi va h/a */}
-            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 pb-6">
-              <div className="w-full py-0">
-                <label className="block text-base font-semibold text-gray-900 mb-2">Konstruksiya turi</label>
-                <CustomSelect
-                  value={constructionType}
-                  onChange={(val) => setConstructionType(val)}
-                  error={showConstructionError}
-                  placeholder="Tanlang"
-                  options={filteredConstructionTypes}
-                />
-              </div>
-
-              {currentConstructionType &&
-                currentConstructionType !== "tashqi_devor" &&
-                currentConstructionType !== "tashqi_devor_ventfasad" && (
-                  <div className="w-full md:basis-1/3">
-                    <label className="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                      <span>Qovurg'a balandligi nisbati, h/a</span>
-                      <button
-                        type="button"
-                        className="w-4 h-4 flex items-center justify-center rounded-full border border-gray-400 text-[10px] text-gray-600 hover:bg-gray-100"
-                        onClick={() => setShowRibInfo(true)}
-                        aria-label="Qovurg'a balandligi nisbati haqida eslatma"
-                      >
-                        ?
-                      </button>
-                    </label>
-                    <CustomSelect
-                      value={ribHeightRatio}
-                      onChange={(val) => setRibHeightRatio(val)}
-                      placeholder="h/a nisbatini tanlang"
-                      options={[
-                        { value: "low", label: "h/a ≤ 0.3" },
-                        { value: "high", label: "h/a > 0.3" },
-                      ]}
-                      error={showRibHeightError}
-                    />
-                  </div>
-                )}
-            </div>
-
-            {/* 2-qism: Materiallar jadvali va havo qatlami */}
+          <div>
+            {/* Materiallar jadvali */}
             <div>
               <MaterialLayersTable
                 layers={layers}
@@ -207,6 +196,49 @@ export function EnclosureStep({
                   Qatlam qo'shish
                 </button>
 
+                {/* Qovurg'a balandligi nisbati - faqat devor va ventfasad bo'lmaganda */}
+                {currentConstructionType &&
+                  currentConstructionType !== "tashqi_devor" &&
+                  currentConstructionType !== "tashqi_devor_ventfasad" && (
+                    <div className="py-2">
+                      <span className="block text-xs font-semibold text-gray-700 mb-1 flex items-center gap-2">
+                        Qovurg'a balandligi nisbati, h/a
+                        <button
+                          type="button"
+                          className="w-4 h-4 flex items-center justify-center rounded-full border border-gray-400 text-[10px] text-gray-600 hover:bg-gray-100"
+                          onClick={() => setShowRibInfo(true)}
+                          aria-label="Qovurg'a balandligi nisbati haqida eslatma"
+                        >
+                          ?
+                        </button>
+                      </span>
+                      <div className="flex items-center gap-4 text-xs text-gray-800">
+                        <label className="inline-flex items-center gap-1">
+                          <input
+                            type="radio"
+                            name="rib-height-ratio"
+                            value="low"
+                            className={`border-gray-300 text-[#1080c2] focus:ring-[#1080c2] ${showRibHeightError ? 'border-red-500' : ''}`}
+                            checked={ribHeightRatio === "low"}
+                            onChange={() => setRibHeightRatio("low")}
+                          />
+                          <span>h/a ≤ 0.3</span>
+                        </label>
+                        <label className="inline-flex items-center gap-1">
+                          <input
+                            type="radio"
+                            name="rib-height-ratio"
+                            value="high"
+                            className={`border-gray-300 text-[#1080c2] focus:ring-[#1080c2] ${showRibHeightError ? 'border-red-500' : ''}`}
+                            checked={ribHeightRatio === "high"}
+                            onChange={() => setRibHeightRatio("high")}
+                          />
+                          <span>h/a &gt; 0.3</span>
+                        </label>
+                      </div>
+                    </div>
+                  )}
+
                 <AirLayerControls airLayer={airLayer} onChange={setAirLayer} showTopBorder={false} />
               </div>
             </div>
@@ -216,10 +248,11 @@ export function EnclosureStep({
 
       <RibHeightInfoModal open={showRibInfo} onClose={() => setShowRibInfo(false)} />
 
-      {/* Material blokidan keyin ko'rsatkichlar paneli (faqat deraza/balkon eshiklari bo'lmaganda) */}
+      {/* Material blokidan keyin ko'rsatkichlar paneli (faqat deraza/balkon eshiklari va fonarlar bo'lmaganda) */}
       {currentConstructionType &&
         currentConstructionType !== "eshik_darvoza" &&
-        currentConstructionType !== "deraza_balkon_eshiklari" && (
+        currentConstructionType !== "deraza_balkon_eshiklari" &&
+        currentConstructionType !== "fonarlar" && (
           <>
             <div className="border-t border-dashed border-gray-200 mt-6 mb-4" />
 
@@ -262,7 +295,22 @@ export function EnclosureStep({
 
             <div className="border-t border-dashed border-gray-200 mt-4 mb-2" />
 
-            <ConstructionResultSummary Ro_calc={Ro_calc} RoTalab={RoTalab} />
+            {/* Xatolik ro'yxati - hulosa blokidan avval */}
+            {validationErrors.length > 0 && (
+              <div className="mb-4">
+                <p className="text-red-600 text-sm mb-1">Ushbu ma'lumotlarni kiriting:</p>
+                <ul className="text-red-500 text-sm space-y-0.5">
+                  {validationErrors.map((error, idx) => (
+                    <li key={idx}>• {error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Hulosa bloki - faqat xatolik yopilganda ko'rinadi */}
+            {validationErrors.length === 0 && (
+              <ConstructionResultSummary Ro_calc={Ro_calc} RoTalab={RoTalab} />
+            )}
           </>
         )}
     </div>

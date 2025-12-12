@@ -18,6 +18,7 @@ export const TEMP_DEFAULTS = {
   // Konstruksiyalar maydoni
   A_W: "600",           // Fasad maydoni (A_Fas), m²
   A_L: "40",            // Derazalar va vitrinalar maydoni, m²
+  A_L2: "15",           // Fonarlar maydoni, m²
   A_D: "25",            // Eshiklar maydoni, m²
   A_CG: "100",          // Yerdagi pol maydoni, m²
   A_G: "100",           // Isitilmaydigan yerto'la ustidagi pol maydoni, m²
