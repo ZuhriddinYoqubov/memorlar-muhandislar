@@ -76,11 +76,11 @@ export function NormativeQStep({
         return fas - AL - AD;
     }, [A_W, A_L, A_D]);
 
-    // ΣA_G = A_CG + A_G
+    // ΣA_G = A_GC + A_G
     const sumA_G = useMemo(() => {
-        const cg = Number(A_CG) || 0;
+        const gc = Number(A_CG) || 0;
         const g = Number(A_G) || 0;
-        return cg + g;
+        return gc + g;
     }, [A_CG, A_G]);
 
     return (
@@ -389,7 +389,7 @@ export function NormativeQStep({
                             {/* A_CG */}
                             <tr className="border-t border-[#E5E7EB] h-[45px]">
                                 <td className="py-2 px-3 text-sm font-medium text-gray-700">
-                                    Yerdagi pol hamda yer sathidan pastdagi devorlar maydoni, A<sub className="text-[0.7em]">CG</sub>
+                                    Yerdagi pol hamda yer sathidan pastdagi devorlar maydoni, A<sub className="text-[0.7em]">GC</sub>
                                 </td>
                                 <td className="py-2 px-3">
                                     <div className="relative w-[60%] ml-auto">

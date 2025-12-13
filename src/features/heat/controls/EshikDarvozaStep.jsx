@@ -40,7 +40,9 @@ export function EshikDarvozaStep({
     const errors = [];
     
     // Qatlamlar tekshiruvi
-    if (layers && layers.length > 0) {
+    if (!layers || layers.length === 0) {
+      errors.push("Kamida 1 ta qatlam kiriting");
+    } else {
       layers.forEach((layer, idx) => {
         if (!layer.name || layer.name === "Qurilish materialini tanlang") {
           errors.push(`${idx + 1}-qatlam: Material tanlang`);

@@ -59,10 +59,23 @@ const FullReportDocument = ({
   qStepData,
   wallLayers,
 }) => {
+  const isMeaningfulLayers = (ls) => {
+    if (!Array.isArray(ls) || ls.length === 0) return false;
+    return ls.some((l) => {
+      const hasDims = (Number(l?.thickness_mm) || 0) > 0;
+      const hasLambda = (Number(l?.lambda) || 0) > 0;
+      const hasNamedMaterial = !!(l?.name && l.name !== "Qurilish materialini tanlang");
+      return (hasDims && hasLambda) || hasNamedMaterial;
+    });
+  };
+
   // Heat steplarni turlarga ajratish
-  const wallSteps = heatSteps.filter(s => {
+  const wallSteps = heatSteps.filter((s) => {
     const ct = s.presetConstructionType || s.savedState?.constructionType;
-    return ct && ct !== "deraza_balkon_eshiklari" && ct !== "eshik_darvoza" && ct !== "floor_heat_calculation";
+    const isWall = ct && ct !== "deraza_balkon_eshiklari" && ct !== "eshik_darvoza" && ct !== "floor_heat_calculation";
+    if (!isWall) return false;
+    if (!s?.savedState) return false;
+    return isMeaningfulLayers(s.savedState?.layers);
   });
   const doorSteps = heatSteps.filter(s => {
     const ct = s.presetConstructionType || s.savedState?.constructionType;

@@ -23,6 +23,7 @@ import {
   exportHeatStepPdf,
 } from "./utils/exportHeatPdf";
 import { exportHeatStepPdfReact } from "./utils/exportHeatPdfReact";
+import { exportQStepPdfReact } from "./utils/exportQStepPdf";
 import { exportWindowStepPdfReact } from "./utils/exportWindowPdf.jsx";
 import { exportDoorStepPdfReact } from "./utils/exportDoorPdf.jsx";
 import { exportFloorPdfReact } from "./utils/exportFloorPdfReact";
@@ -253,6 +254,7 @@ export default function HeatWizard() {
     A_R: tempDefaults?.buildingParams?.A_R || "",
   });
 
+  // Ichki/tashqi iqlim parametrlarini saqlash (t_i, c6_i, t_t)
   // Iqlimiy ma'lumotlarni viloyat va tuman asosida hisoblash
   const heatingSeason = useMemo(() => {
     if (!initial.province || !initial.region) return { t_is_dav: null, Z_is_dav: null, D_is_dav: null };
@@ -274,10 +276,13 @@ export default function HeatWizard() {
     const t8_days = district.havo_sutka_ortacha_c?.t_8?.davom_etish_sutka;
     const t12_days = district.havo_sutka_ortacha_c?.t_12?.davom_etish_sutka;
     const Z_is_dav = t8_days && t12_days ? (t8_days + t12_days) / 2 : null;
-    const D_is_dav = Z_is_dav; // D_is_dav va Z_is_dav bir xil
+    const t_i = Number(climate?.t_in);
+    const D_is_dav = Z_is_dav != null && t_is_dav != null && Number.isFinite(t_i)
+      ? (t_i - t_is_dav) * Z_is_dav
+      : null;
 
     return { t_is_dav, Z_is_dav, D_is_dav };
-  }, [initial.province, initial.region]);
+  }, [initial.province, initial.region, climate?.t_in]);
 
   // Issiqlik texnik hisoblari uchun dinamik steplar (boshlang'ichda bo'sh, keyin 3,4,5... tartibida qo'shiladi)
   const [heatSteps, setHeatSteps] = useState(tempDefaults?.heatSteps || []);
@@ -1440,7 +1445,50 @@ export default function HeatWizard() {
 
     // 2-bosqich (bino parametrlari)
     if (currentStepId === "building_parameters") {
-      exportNormativeStepPdf({ initial });
+      const qStepData = {
+        P_m: buildingParams.P_m,
+        H_m: buildingParams.H_m,
+        floors: buildingParams.floors,
+        A_f: buildingParams.A_f,
+        A_mc1: buildingParams.A_mc1,
+        V_h: buildingParams.V_h,
+        Xodim: buildingParams.Xodim,
+        roofType: buildingParams.roofType,
+        A_W: buildingParams.A_W,
+        A_L: buildingParams.A_L,
+        A_D: buildingParams.A_D,
+        A_CG: buildingParams.A_CG,
+        A_G: buildingParams.A_G,
+        A_R: buildingParams.A_R,
+        orayopmaAreas: buildingParams.orayopmaAreas,
+      };
+
+      const isMeaningfulLayers = (ls) => {
+        if (!Array.isArray(ls) || ls.length === 0) return false;
+        return ls.some((l) => {
+          const hasDims = (Number(l?.thickness_mm) || 0) > 0;
+          const hasLambda = (Number(l?.lambda) || 0) > 0;
+          const hasNamedMaterial = !!(l?.name && l.name !== "Qurilish materialini tanlang");
+          return (hasDims && hasLambda) || hasNamedMaterial;
+        });
+      };
+
+      const wallSteps = heatSteps.filter((s) => {
+        const ct = s.presetConstructionType || s.savedState?.constructionType;
+        return ct === "tashqi_devor" || ct === "tashqi_devor_ventfasad";
+      });
+
+      const bestWallStep = wallSteps.find((s) => isMeaningfulLayers(s?.savedState?.layers)) || wallSteps[0];
+      const wallLayers = bestWallStep?.savedState?.layers || [];
+
+      exportQStepPdfReact({
+        initial,
+        climate,
+        heatingSeason,
+        qStepData,
+        layers: wallLayers,
+        heatSteps,
+      });
       return;
     }
 
@@ -1498,7 +1546,7 @@ export default function HeatWizard() {
             t_out: climate?.t_out,
             t_is_dav: heatingSeason?.t_is_dav,
             Z_is_dav: heatingSeason?.Z_is_dav,
-            D_d_dav: heatingSeason?.D_d_dav,
+            D_d_dav: heatingSeason?.D_is_dav,
 
             // Normativ parametrlar va ularning jadval satr raqamlari (PDF kommentlar uchun)
             delta_t_n: deltaTtResult?.delta_tt,
@@ -1732,14 +1780,26 @@ export default function HeatWizard() {
       A_CG: buildingParams.A_CG,
       A_G: buildingParams.A_G,
       A_R: buildingParams.A_R,
+      orayopmaAreas: buildingParams.orayopmaAreas,
     };
 
     // Devor qatlamlari - birinchi devor stepidan olish
-    const wallStep = heatSteps.find(s => {
+    const isMeaningfulLayers = (ls) => {
+      if (!Array.isArray(ls) || ls.length === 0) return false;
+      return ls.some((l) => {
+        const hasDims = (Number(l?.thickness_mm) || 0) > 0;
+        const hasLambda = (Number(l?.lambda) || 0) > 0;
+        const hasNamedMaterial = !!(l?.name && l.name !== "Qurilish materialini tanlang");
+        return (hasDims && hasLambda) || hasNamedMaterial;
+      });
+    };
+
+    const wallSteps = heatSteps.filter((s) => {
       const ct = s.presetConstructionType || s.savedState?.constructionType;
-      return ct && ct !== "deraza_balkon_eshiklari" && ct !== "eshik_darvoza" && ct !== "floor_heat_calculation";
+      return ct === "tashqi_devor" || ct === "tashqi_devor_ventfasad";
     });
-    const wallLayers = wallStep?.savedState?.layers || [];
+    const bestWallStep = wallSteps.find((s) => isMeaningfulLayers(s?.savedState?.layers)) || wallSteps[0];
+    const wallLayers = bestWallStep?.savedState?.layers || [];
 
     // Bitta PDF faylga eksport qilish
     await exportFullReportPdf({

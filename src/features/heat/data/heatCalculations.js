@@ -41,6 +41,9 @@ export function mapConstructionTypeToId(ct) {
       return "4";
     case "otish_joyi_orayopma":
       return "5";
+    case "floor_heat_calculation":
+      // Yerdagi pol uchun Δtₜ hisobida "o'tish va isitilmaydigan xonalar" guruhi mantiqi qo'llanadi
+      return "6";
     case "yertola_tashqi_havo_boglangan":
       return "6";
     case "isitilmaydigan_yertola_yoruglik_oraliqli":

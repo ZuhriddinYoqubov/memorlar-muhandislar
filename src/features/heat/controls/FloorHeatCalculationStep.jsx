@@ -8,6 +8,8 @@ import { DerazaBalkonStep } from "./DerazaBalkonStep";
 import { RibHeightInfoModal } from "./InfoModals";
 import { getHumidityRegime } from "../data/heatCalculations";
 import { calculateYp, getFloorAbsorptionNorm } from "../data/floorHeatAbsorption";
+import { calculateRgcFromTable4 } from "../utils/rgcInterpolation";
+import { computeDeltaTt, getNByConstructionId, mapConstructionTypeToId } from "../data/heatCalculations";
 
 // Yerdagi pol (floor_heat_calculation) bosqichi uchun komponent (EnclosureStep dan nusxa olingan)
 export function FloorHeatCalculationStep({
@@ -65,6 +67,9 @@ export function FloorHeatCalculationStep({
   const [showInitial, setShowInitial] = useState(false);
   const [showNormative, setShowNormative] = useState(false);
   const [showDBlock, setShowDBlock] = useState(false);
+
+  const [planA, setPlanA] = useState("");
+  const [planB, setPlanB] = useState("");
 
   // Hozirgi konstruksiya turini aniqlash
   const currentConstructionType = constructionType;
@@ -155,6 +160,59 @@ export function FloorHeatCalculationStep({
 
     return { D1, sumD_rest, isScenario1, S1: s1_val };
   }, [layers, humidityCondition]);
+
+  const rgcData = React.useMemo(() => {
+    return calculateRgcFromTable4(planA, planB);
+  }, [planA, planB]);
+
+  const alphaIFloor = 8.7;
+  const alphaTFloor = 6;
+
+  const nFloor = 0.4;
+
+  const RkFloor = React.useMemo(() => {
+    if (!layers || layers.length === 0) return null;
+    const sum = layers.reduce((acc, l) => {
+      const d_m = (Number(l?.thickness_mm) || 0) / 1000;
+      const lam = Number(l?.lambda) || 0;
+      if (d_m > 0 && lam > 0) return acc + d_m / lam;
+      return acc;
+    }, 0);
+    return sum > 0 ? sum : null;
+  }, [layers]);
+
+  const RoCalcFloor = React.useMemo(() => {
+    if (RkFloor == null) return null;
+    if (!Number.isFinite(alphaIFloor) || !Number.isFinite(alphaTFloor) || alphaIFloor === 0 || alphaTFloor === 0) return null;
+    return 1 / alphaIFloor + RkFloor + 1 / alphaTFloor;
+  }, [RkFloor]);
+
+  const deltaTtFloorResult = React.useMemo(() => {
+    return computeDeltaTt({
+      objectType: initial?.objectType,
+      constructionType: "floor_heat_calculation",
+      t_in: climate?.t_in,
+      phi_in: climate?.phi_in,
+    });
+  }, [initial?.objectType, climate?.t_in, climate?.phi_in]);
+
+  const RoTalSGFloor = React.useMemo(() => {
+    const ti = climate?.t_in;
+    const tt = climate?.t_out;
+    const delta = deltaTtFloorResult?.delta_tt;
+    if (nFloor == null || ti == null || tt == null || delta == null) return null;
+    if (!Number.isFinite(Number(nFloor)) || !Number.isFinite(Number(ti)) || !Number.isFinite(Number(tt)) || !Number.isFinite(Number(delta))) return null;
+    if (Number(delta) === 0 || Number(alphaIFloor) === 0) return null;
+    return (Number(nFloor) * (Number(ti) - Number(tt))) / (Number(delta) * Number(alphaIFloor));
+  }, [nFloor, climate?.t_in, climate?.t_out, deltaTtFloorResult?.delta_tt]);
+
+  const floorSummaryMissing = React.useMemo(() => {
+    const missing = [];
+    if (!String(planA || "").trim()) missing.push("Bino uzunligi a");
+    if (!String(planB || "").trim()) missing.push("Bino eni b");
+    if (rgcData?.RGC == null) missing.push("RoTal. (RGC)");
+    return missing;
+  }, [planA, planB, rgcData?.RGC]);
 
   return (
     <div className="space-y-6 text-sm text-gray-700">
@@ -263,13 +321,113 @@ export function FloorHeatCalculationStep({
 
               <div className="border-t border-dashed border-gray-200 my-4" />
 
+              {/* Bino reja o'lchamlari */}
+              <section className="mt-6 space-y-3">
+                <h3 className="text-lg md:text-xl font-semibold text-gray-900">Bino reja o‘lchamlari</h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <div className="text-xs font-semibold text-gray-700">Bino uzunligi, a</div>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={planA}
+                        onChange={(e) => setPlanA(e.target.value)}
+                        className="w-full px-3 py-2 pr-10 rounded-lg border border-[#E5E7EB] bg-gray-50 text-sm text-gray-900 text-right focus:outline-none focus:ring-2 focus:ring-[#1080c2]/60 focus:border-[#1080c2]"
+                        placeholder="0"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">m</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="text-xs font-semibold text-gray-700">Bino eni, b</div>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={planB}
+                        onChange={(e) => setPlanB(e.target.value)}
+                        className="w-full px-3 py-2 pr-10 rounded-lg border border-[#E5E7EB] bg-gray-50 text-sm text-gray-900 text-right focus:outline-none focus:ring-2 focus:ring-[#1080c2]/60 focus:border-[#1080c2]"
+                        placeholder="0"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">m</span>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <div className="border-t border-dashed border-gray-200 my-4" />
+
+              {/* Normativ parametrlar */}
+              <section className="mt-6 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-lg md:text-xl font-semibold text-gray-900">Normativ parametrlar</h3>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowNormative(!showNormative)}
+                    className="w-7 h-7 flex items-center justify-center rounded-full border border-gray-300 bg-white text-gray-600 hover:bg-gray-100 text-xs"
+                    aria-label={showNormative ? "Normativ parametrlar blokini yopish" : "Normativ parametrlar blokini ochish"}
+                  >
+                    <span className={`transform transition-transform ${showNormative ? "rotate-0" : "-rotate-90"}`}>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </span>
+                  </button>
+                </div>
+
+                {showNormative && (
+                  <ConstructionIndicatorsPanel
+                    deltaTtResult={deltaTtFloorResult}
+                    alphaI={alphaIFloor}
+                    alphaT={alphaTFloor}
+                    heatingSeason={heatingSeason}
+                    RoTalSG={RoTalSGFloor}
+                    RoTalab={rgcData?.RGC != null ? Number(rgcData.RGC) : null}
+                    RoResult={null}
+                    Rk={RkFloor}
+                    Ro_calc={RoCalcFloor}
+                    initial={initial}
+                    constructionType={"floor_heat_calculation"}
+                    climate={climate}
+                    layers={layers}
+                    ribHeightRatio={ribHeightRatio}
+                    planA={planA}
+                    planB={planB}
+                  />
+                )}
+              </section>
+
+              <div className="border-t border-dashed border-gray-200 my-4" />
+
+              {floorSummaryMissing.length > 0 && (
+                <div className="mb-4 text-left">
+                  <p className="text-red-600 text-sm mb-1">Ushbu ma'lumotlarni kiriting:</p>
+                  <ul className="text-red-500 text-sm space-y-0.5">
+                    {floorSummaryMissing.map((m) => (
+                      <li key={m}>• {m}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {floorSummaryMissing.length === 0 && (
+                <ConstructionResultSummary
+                  Ro_calc={RoCalcFloor}
+                  RoTalab={rgcData?.RGC != null ? Number(rgcData.RGC) : null}
+                />
+              )}
+
               {/* D bloki - Issiqlik inersiyasi */}
               {layers && layers.length > 0 && (
                 <section className="mt-6 space-y-3">
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="text-lg md:text-xl font-semibold text-gray-900">
-                      To'suvchi konstruksiyalarning issiqlik inertsiyasi, 
-                       <span className="font-medium text-[#1080c2]"> D</span>
+                      To'suvchi konstruksiyalarning issiqlik inertsiyasi,
+                      <span className="font-medium text-[#1080c2]"> D</span>
                     </h3>
                     <div className="flex items-center gap-3">
 

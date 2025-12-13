@@ -12,6 +12,8 @@ import {
   getDIsDavNote,
   getRoTalSGNote,
   getRoTalNote,
+  getNByConstructionId,
+  mapConstructionTypeToId,
   getRkNote,
   getRoNote,
 } from "../data/heatCalculations";
@@ -215,7 +217,17 @@ export function ConstructionIndicatorsPanel({
   climate,
   layers,
   ribHeightRatio,
+  planA,
+  planB,
 }) {
+  const nForFormula = constructionType === "floor_heat_calculation"
+    ? 0.4
+    : (getNByConstructionId(mapConstructionTypeToId(constructionType)) ?? 1);
+
+  const formatComma = (value, digits) => {
+    if (value == null || !Number.isFinite(value)) return null;
+    return value.toFixed(digits).replace(".", ",");
+  };
   // Izoh helper - row qiymatlarini olish
   const alphaIRow = constructionType === "tashqi_devor" || constructionType === "tashqi_devor_ventfasad" || constructionType === "eshik_darvoza"
     ? 1
@@ -365,7 +377,13 @@ export function ConstructionIndicatorsPanel({
         </div>
         {RoTalSG != null && climate?.t_in != null && climate?.t_out != null && deltaTtResult?.delta_tt != null && alphaI != null && (
           <p className="text-xs text-gray-500 italic mt-1">
-            R<sub className="text-[0.7em]">o</sub><sup className="text-[0.7em]">Tal.SG</sup> = n(t<sub className="text-[0.7em]">i</sub> - t<sub className="text-[0.7em]">t</sub>) / (Δt<sub className="text-[0.7em]">t</sub> × α<sub className="text-[0.7em]">i</sub>) = 1×({climate.t_in} - ({climate.t_out})) / ({deltaTtResult.delta_tt.toFixed(1)} × {alphaI.toFixed(1)}) = {RoTalSG.toFixed(2)}
+            R<sub className="text-[0.7em]">o</sub><sup className="text-[0.7em]">Tal.SG</sup> = n(t<sub className="text-[0.7em]">i</sub> - t<sub className="text-[0.7em]">t</sub>) / (Δt<sub className="text-[0.7em]">t</sub> × α<sub className="text-[0.7em]">i</sub>) = {nForFormula}×({climate.t_in} - ({climate.t_out})) / ({deltaTtResult.delta_tt.toFixed(1)} × {alphaI.toFixed(1)}) = {RoTalSG.toFixed(2)}
+          </p>
+        )}
+
+        {RoTalab != null && (
+          <p className="text-xs text-gray-500 italic mt-1">
+            To'suvchi konstruksiyaning issiqlik uzatilishiga keltirilgan qarshiligi R<sub className="text-[0.7em]">o</sub> R<sub className="text-[0.7em]">o</sub><sup className="text-[0.7em]">Tal.SG</sup> qiymatdan va R<sub className="text-[0.7em]">o</sub><sup className="text-[0.7em]">Tal.</sup> qiymatdan kam bo'lmasligi kerak.
           </p>
         )}
       </div>
@@ -378,7 +396,7 @@ export function ConstructionIndicatorsPanel({
               To'suvchi konstruksiyaning talab etilgan issiqlik uzatilishiga keltirilgan qarshiligi, R
               <sub className="align-baseline text-[0.7em]">o</sub>
               <sup className="align-baseline text-[0.7em]">Tal.</sup>
-              {initial?.protectionLevel && (
+              {constructionType !== "floor_heat_calculation" && initial?.protectionLevel && (
                 <span>{" "}(issiqlik himoyasining {initial.protectionLevel} darajasi)</span>
               )}
             </span>
@@ -392,18 +410,38 @@ export function ConstructionIndicatorsPanel({
             </span>
           ) : (
             <span className="text-xs text-red-600 text-right">
-              RₒTal. ni hisoblash uchun kerakli parametrlarni tanlang.
+              {constructionType === "floor_heat_calculation"
+                ? "RₒTal. ni hisoblash uchun bino reja o‘lchamlarini kiriting."
+                : "RₒTal. ni hisoblash uchun kerakli parametrlarni tanlang."}
             </span>
           )}
         </div>
-        {RoResult?.row != null && (
+
+        {constructionType === "floor_heat_calculation" && RoTalab != null && (
           <p className="text-xs text-gray-500 italic mt-1">
-            {getRoTalNote(RoResult.row, initial?.protectionLevel)}
+            {(() => {
+              const aNum = Number(planA);
+              const bNum = Number(planB);
+              const hasDims = Number.isFinite(aNum) && aNum > 0 && Number.isFinite(bNum) && bNum > 0;
+              if (!hasDims) return null;
+
+              const S = aNum * bNum;
+              const x = (aNum * bNum) / (aNum + bNum);
+              const xStr = formatComma(x, 2);
+              const RoTalStr = RoTalab?.toFixed(2);
+
+              return (
+                <>
+                  Polning maydoni S = {S.toFixed(1)} m², binoning reja o‘lchamlari: a = {aNum.toFixed(1)} m, b = {bNum.toFixed(1)} m. Yerdagi polning issiqlik uzatilishiga qarshiligi SHNQ 2.01.18–2024, 4-jadval asosida aniqlanadi. a·b/(a+b) = ({aNum.toFixed(1)}·{bNum.toFixed(1)})/({aNum.toFixed(1)}+{bNum.toFixed(1)}) = ({xStr}). Olingan {xStr} qiymat bo‘yicha, 6-jadvaldagi tayanch qiymatlar orasida interpolyatsiya natijasida Rotal = {RoTalStr} m²·°C/Vt
+                </>
+              );
+            })()}
           </p>
         )}
-        {RoTalab != null && (
+
+        {constructionType !== "floor_heat_calculation" && RoResult?.row != null && (
           <p className="text-xs text-gray-500 italic mt-1">
-            To'suvchi konstruksiyaning issiqlik uzatilishiga keltirilgan qarshiligi R<sub className="text-[0.7em]">o</sub> R<sub className="text-[0.7em]">o</sub><sup className="text-[0.7em]">Tal.SG</sup> qiymatdan va R<sub className="text-[0.7em]">o</sub><sup className="text-[0.7em]">Tal.</sup> qiymatdan kam bo'lmasligi kerak.
+            {getRoTalNote(RoResult.row, initial?.protectionLevel)}
           </p>
         )}
       </div>

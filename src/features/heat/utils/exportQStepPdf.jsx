@@ -51,12 +51,16 @@ export const QStepPages = ({ initial, climate, heatingSeason, qStepData, layers,
   const A_L2 = getWithDefault(qStepData?.A_L2, 'A_L2'); // Fonarlar maydoni
   const A_D = getWithDefault(qStepData?.A_D, 'A_D');
   const A_CG = getWithDefault(qStepData?.A_CG, 'A_CG');
-  const A_G = getWithDefault(qStepData?.A_G, 'A_G');
+  const A_G = qStepData?.A_G;
   const A_R = getWithDefault(qStepData?.A_R, 'A_R');
+
+  const orayopmaAreas = qStepData?.orayopmaAreas || {};
 
   // Hisoblangan qiymatlar
   const A_W_net = (Number(A_W) || 0) - (Number(A_L) || 0) - (Number(A_D) || 0);
-  const sumA_G = (Number(A_CG) || 0) + (Number(A_G) || 0);
+  const sumOrayopmaAreas = Object.values(orayopmaAreas).reduce((sum, v) => sum + (Number(v) || 0), 0);
+  const A_G_effective = sumOrayopmaAreas > 0 ? sumOrayopmaAreas : (A_G != null && A_G !== "" ? (Number(A_G) || 0) : 0);
+  const sumA_G = (Number(A_CG) || 0) + A_G_effective;
 
   // Tashqi devor - eng qalin qatlam
   const thickestLayer = layers && layers.length > 0
@@ -79,7 +83,7 @@ export const QStepPages = ({ initial, climate, heatingSeason, qStepData, layers,
   // Tomyopma turi nomi - heatSteps dan dinamik olish
   const roofTypeLabels = {
     tomyopma: "Tomyopma",
-    ochiq_chordoq: "Ochiq chordoq ustidagi orayopma",
+    ochiq_chordoq: "Chordoq usti (Ochiq chordoq)",
     chordoq_orayopma: "Chordoq orayopmasi",
   };
   
@@ -372,7 +376,7 @@ export const QStepPages = ({ initial, climate, heatingSeason, qStepData, layers,
               <View style={pdfStyles.labelWithSubscript}>
                 <Text style={pdfStyles.labelFix}>Yerdagi pol hamda yer sathidan pastdagi devorlar maydoni, </Text>
                 <Text style={pdfStyles.mainVariableText}>A</Text>
-                <Text style={pdfStyles.subscriptText}>CG</Text>
+                <Text style={pdfStyles.subscriptText}>GC</Text>
               </View>
               <Text style={pdfStyles.value}>{formatValue(A_CG, "m²")}</Text>
             </View>

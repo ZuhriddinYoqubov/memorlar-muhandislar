@@ -3,7 +3,6 @@ import React, { useMemo } from "react";
 import { BuildingParameterInput } from "./BuildingParameterInput";
 import { FieldHelp } from "./FieldHelp";
 import { CustomSelect } from "./HeatSelects";
-import { exportNormativeStepPdf } from "../utils/exportHeatPdf";
 
 const OBJECT_TYPES = [
     { value: "turar_joylar", label: "Turar joylar" },
@@ -104,14 +103,14 @@ export function BuildingParametersStep({
     // Orayopma maydonlari (dinamik)
     const orayopmaAreas = buildingParams.orayopmaAreas || {};
 
-    // ΣA_G = A_CG + barcha orayopma maydonlari yig'indisi
+    // ΣA_G = A_GC + barcha orayopma maydonlari yig'indisi
     const sumA_G = useMemo(() => {
-        const cg = Number(A_CG) || 0;
+        const gc = Number(A_CG) || 0;
         let totalOrayopma = 0;
         Object.values(orayopmaAreas).forEach(val => {
             totalOrayopma += Number(val) || 0;
         });
-        return cg + totalOrayopma;
+        return gc + totalOrayopma;
     }, [A_CG, orayopmaAreas]);
 
     // Orayopma maydonini yangilash
@@ -321,7 +320,7 @@ export function BuildingParametersStep({
                             {/* A_CG */}
                             <BuildingParameterInput
                                 label="Yerdagi pol hamda yer sathidan pastdagi devorlar maydoni, A"
-                                subscript="CG"
+                                subscript="GC"
                                 value={A_CG}
                                 onChange={(e) => updateBuildingParam('A_CG', validateFloat(e.target.value))}
                                 unit="m²"

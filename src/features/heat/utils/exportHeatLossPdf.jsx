@@ -78,6 +78,7 @@ export const HeatLossPages = ({
   // Bino parametrlari (vaqtincha default bilan)
   const A_W = getWithDefault(buildingParams?.A_W, 'A_W');      // Fasad maydoni
   const A_L = getWithDefault(buildingParams?.A_L, 'A_L');      // Derazalar maydoni
+  const A_L2 = getWithDefault(buildingParams?.A_L2, 'A_L2');   // Fonarlar maydoni
   const A_D = getWithDefault(buildingParams?.A_D, 'A_D');      // Eshiklar maydoni
   const A_CG = getWithDefault(buildingParams?.A_CG, 'A_CG');   // Yerdagi pol maydoni
   const A_G = getWithDefault(buildingParams?.A_G, 'A_G');      // Yerto'la ustidagi pol
@@ -101,11 +102,18 @@ export const HeatLossPages = ({
     return null;
   };
 
+  const hasType = (types) => {
+    const list = Array.isArray(types) ? types : [types];
+    return heatSteps.some((s) => {
+      const ct = s.presetConstructionType || s.savedState?.constructionType;
+      return list.includes(ct);
+    });
+  };
+
   // R qiymatlari - heatSteps dan dinamik olish
   const R_d = getStepValue(['tashqi_devor', 'tashqi_devor_ventfasad'], 'Ro_calc') || 2.68;
   const R_deraza = getStepValue(['deraza_balkon_eshiklari'], 'windowRo') || 0.50; // Deraza
   const R_fonar = getStepValue(['fonarlar'], 'windowRo') || 0.70; // Fonarlar
-  const R_yo = R_deraza; // Yorug'lik oraliqlari (deraza)
   const R_oy = getStepValue(['chordoq_orayopma', 'ochiq_chordoq', 'tomyopma'], 'Ro_calc') || 2.85;
   const R_pol = getStepValue(['floor_heat_calculation'], 'Ro_calc') || 1.55;
   const R_qop = getStepValue(['chordoq_orayopma', 'ochiq_chordoq', 'tomyopma'], 'Ro_calc') || 2.49;
@@ -113,31 +121,41 @@ export const HeatLossPages = ({
   const K_d = 7; // Eshik koeffitsienti
 
   // Maydonlar (hisoblangan)
-  const F_d = parseFloat(A_W) - parseFloat(A_L) - parseFloat(A_D); // Tashqi devor maydoni
-  const F_yo = parseFloat(A_L) || 86.9;  // Yorug'lik oraliqlar maydoni
+  const F_d = (parseFloat(A_W) || 0) - (parseFloat(A_L) || 0) - (parseFloat(A_D) || 0); // Tashqi devor maydoni (AL2 ayrilmaydi)
+  const F_deraza = parseFloat(A_L) || 0;
+  const F_fonar = parseFloat(A_L2) || 0;
   const F_oy = 0; // 1-qavat pol orayopmasi (vaqtincha 0)
-  const F_pol = parseFloat(A_CG) + parseFloat(A_G); // Yerdagi pol maydoni
-  const F_qop = parseFloat(A_R) || 210.2; // Chortoq orayopmasi maydoni
-  const F_ed = parseFloat(A_D) || 15; // Eshik maydoni
+  const F_pol = (parseFloat(A_CG) || 0) + (parseFloat(A_G) || 0); // Yerdagi pol maydoni
+  const F_qop = parseFloat(A_R) || 0; // Chortoq orayopmasi maydoni
+  const F_ed = parseFloat(A_D) || 0; // Eshik maydoni
+
+  const hasWall = hasType(['tashqi_devor', 'tashqi_devor_ventfasad']);
+  const hasWindow = hasType(['deraza_balkon_eshiklari']);
+  const hasFonar = hasType(['fonarlar']);
+  const hasDoor = hasType(['eshik_darvoza']);
+  const hasRoof = hasType(['chordoq_orayopma', 'ochiq_chordoq', 'tomyopma']);
+  const hasFloor = hasType(['floor_heat_calculation']);
 
   // Issiqlik yo'qotishlari hisobi
-  const Q_oy = F_d > 0 && R_d > 0 ? (F_d / R_d) * deltaT : 0;
-  const Q_yo = F_yo > 0 && R_yo > 0 ? (F_yo / R_yo) * deltaT : 0;
+  const Q_wall = hasWall && F_d > 0 && R_d > 0 ? (F_d / R_d) * deltaT : 0;
+  const Q_window = hasWindow && F_deraza > 0 && R_deraza > 0 ? (F_deraza / R_deraza) * deltaT : 0;
+  const Q_fonar = hasFonar && F_fonar > 0 && R_fonar > 0 ? (F_fonar / R_fonar) * deltaT : 0;
   const Q_1qavat = F_oy > 0 && R_oy > 0 ? (F_oy / R_oy) * deltaT : 0;
-  const Q_pol = F_pol > 0 && R_pol > 0 ? (F_pol / R_pol) * deltaT : 0;
-  const Q_qop = F_qop > 0 && R_qop > 0 ? (F_qop / R_qop) * deltaT : 0;
-  const Q_ed = F_ed * K_d;
+  const Q_pol = hasFloor && F_pol > 0 && R_pol > 0 ? (F_pol / R_pol) * deltaT : 0;
+  const Q_qop = hasRoof && F_qop > 0 && R_qop > 0 ? (F_qop / R_qop) * deltaT : 0;
+  const Q_ed = hasDoor ? (F_ed * K_d) : 0;
 
   // Jami issiqlik yo'qotilishi sarfi
-  const Q_io = Q_pol + Q_oy + Q_qop + Q_yo + Q_ed;
+  const Q_io = Q_pol + Q_wall + Q_qop + Q_window + Q_fonar + Q_ed;
 
   // 8.8 - Me'yor belgilovchi issiqlik yo'qotilishi
   const Q_sh_tal = deltaT * (
-    1.1 * F_d / R_d +
-    1.1 * F_yo / R_yo +
-    0.6 * F_oy / R_oy +
-    F_pol / R_pol +
-    1 * F_qop / R_qop +
+    (hasWall ? (1.1 * F_d / R_d) : 0) +
+    (hasWindow ? (1.1 * F_deraza / R_deraza) : 0) +
+    (hasFonar ? (1.1 * F_fonar / R_fonar) : 0) +
+    (F_oy > 0 && R_oy > 0 ? (0.6 * F_oy / R_oy) : 0) +
+    (hasFloor ? (F_pol / R_pol) : 0) +
+    (hasRoof ? (1 * F_qop / R_qop) : 0) +
     Q_ed
   );
 
@@ -154,12 +172,13 @@ export const HeatLossPages = ({
   // 8.11 - Binoning keltirilgan issiqlik uzatilishi koeffitsienti
   const beta = 1.13; // Turar joy binolari uchun
   const K_tal_m = beta * (
-    F_d / R_d +
-    F_yo / R_yo +
-    F_ed / 0.7 +
-    0.8 * F_qop / R_qop +
-    0.5 * F_pol / R_pol +
-    0.7 * F_oy / R_oy
+    (hasWall ? (F_d / R_d) : 0) +
+    (hasWindow ? (F_deraza / R_deraza) : 0) +
+    (hasFonar ? (F_fonar / R_fonar) : 0) +
+    (hasDoor ? (F_ed / 0.7) : 0) +
+    (hasRoof ? (0.8 * F_qop / R_qop) : 0) +
+    (hasFloor ? (0.5 * F_pol / R_pol) : 0) +
+    (F_oy > 0 && R_oy > 0 ? (0.7 * F_oy / R_oy) : 0)
   ) / V_h_num;
 
   // 8.12 - Isitish uchun qiyosiy issiqlik iste'moli
@@ -198,113 +217,158 @@ export const HeatLossPages = ({
             8. Tashqi to'suvchi konstruksiyalardan issiqlik yo'qotilishi.
           </Text>
 
-          {/* 8.1 Tashqi devor konstruksiyasidan issiqlik yo'qotilishi */}
-          <View style={{ marginTop: 8 }}>
-            <View style={pdfStyles.row2}>
-              <Text style={pdfStyles.labelFixSemiBold}>8.1  Tashqi devor konstruksiyasidan issiqlik yo'qotilishi</Text>
-              <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#1080C2' }}>{fmt(Q_oy, 1)} m²xSx°C/kkal</Text>
-            </View>
-            <Text style={pdfStyles.note2}>
-              Q<Text style={{ fontSize: 5 }}>w</Text> = F<Text style={{ fontSize: 5 }}>w</Text>·1/R<Text style={{ fontSize: 5 }}>w</Text>(t<Text style={{ fontSize: 5 }}>i</Text>-t<Text style={{ fontSize: 5 }}>t</Text>) = {fmt(F_d, 1)} x 1/{fmt(R_d)} x {t_i}-({t_e}) = {fmt(Q_oy, 1)} m²xSx°C/kkal   
-            </Text>
-            <Text style={pdfStyles.note2}>
-              Bunda: F<Text style={{ fontSize: 5 }}>w</Text> - maydon - {fmt(F_d, 1)} m²;  R<Text style={{ fontSize: 5 }}>w</Text> - tashqi devor konstruksiyasining issiqlik uzatilishiga qarshiligi - {fmt(R_d)} m²x°C
-            </Text>
-          </View>
+          {(() => {
+            let idx = 1;
+            const blocks = [];
 
-          {/* 8.2 Yorug'lik oraliqlaridan issiqlik yo'qotilishi */}
-          <View style={{ marginTop: 8 }}>
-            <View style={pdfStyles.row2}>
-              <Text style={pdfStyles.labelFixSemiBold}>8.2  Yorug'lik oraliqlaridan issiqlik yo'qotilishi</Text>
-              <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#1080C2' }}>{fmt(Q_yo, 1)} m²xSx°C/kkal</Text>
-            </View>
-            <Text style={pdfStyles.note2}>
-              Q<Text style={{ fontSize: 5 }}>L</Text> = F<Text style={{ fontSize: 5 }}>L</Text>/R<Text style={{ fontSize: 5 }}>L</Text>(t<Text style={{ fontSize: 5 }}>i</Text>-t<Text style={{ fontSize: 5 }}>t</Text>) = {fmt(F_yo, 1)}/{fmt(R_yo)} x {t_i}-({t_e}) = {fmt(Q_yo, 1)} m²xSx°C/kkal
-            </Text>
-            <Text style={pdfStyles.note2}>
-              Bunda: F<Text style={{ fontSize: 5 }}>L</Text> - maydon - {fmt(F_yo, 1)} m²;  R<Text style={{ fontSize: 5 }}>L</Text> - yorug'lik oraliqlari qoplama konstruksiyasining issiqlik uzatilishiga qarshiligi - {fmt(R_yo)} m²x°C
-            </Text>
-          </View>
+            if (hasWall) {
+              const n = idx++;
+              blocks.push(
+                <View key={`8.${n}`} style={{ marginTop: 8 }}>
+                  <View style={pdfStyles.row2}>
+                    <Text style={pdfStyles.labelFixSemiBold}>8.{n}  Tashqi devor konstruksiyasidan issiqlik yo'qotilishi</Text>
+                    <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#1080C2' }}>{fmt(Q_wall, 1)} m²xSx°C/kkal</Text>
+                  </View>
+                  <Text style={pdfStyles.note2}>
+                    Q<Text style={{ fontSize: 5 }}>w</Text> = F<Text style={{ fontSize: 5 }}>w</Text>·1/R<Text style={{ fontSize: 5 }}>w</Text>(t<Text style={{ fontSize: 5 }}>i</Text>-t<Text style={{ fontSize: 5 }}>t</Text>) = {fmt(F_d, 1)} x 1/{fmt(R_d)} x {t_i}-({t_e}) = {fmt(Q_wall, 1)} m²xSx°C/kkal
+                  </Text>
+                  <Text style={pdfStyles.note2}>
+                    Bunda: F<Text style={{ fontSize: 5 }}>w</Text> - maydon - {fmt(F_d, 1)} m²;  R<Text style={{ fontSize: 5 }}>w</Text> - tashqi devor konstruksiyasining issiqlik uzatilishiga qarshiligi - {fmt(R_d)} m²x°C
+                  </Text>
+                </View>
+              );
+            }
 
-          {/* 8.3 Pol orayopmasidan issiqlik yo'qotilishi */}
-          <View style={{ marginTop: 8 }}>
-            <View style={pdfStyles.row2}>
-              <Text style={pdfStyles.labelFixSemiBold}>8.3  Pol orayopmasidan issiqlik yo'qotilishi</Text>
-              <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#1080C2' }}>{fmt(Q_1qavat, 1)} m²xSx°C/kkal</Text>
-            </View>
-            <Text style={pdfStyles.note2}>
-              Q<Text style={{ fontSize: 5 }}>G</Text> = F<Text style={{ fontSize: 5 }}>G</Text>·1/R<Text style={{ fontSize: 5 }}>G</Text>(t<Text style={{ fontSize: 5 }}>i</Text>-t<Text style={{ fontSize: 5 }}>t</Text>) = {fmt(F_oy, 1)} x 1/{fmt(R_oy)} x {t_i}-({t_e}) = {fmt(Q_1qavat, 1)} m²xSx°C/kkal
-            </Text>
-            <Text style={pdfStyles.note2}>
-              Bunda: F<Text style={{ fontSize: 5 }}>G</Text> - maydon - {fmt(F_oy, 1)} m²;  R<Text style={{ fontSize: 5 }}>G</Text> - orayopma konstruksiyasining issiqlik uzatilishiga qarshiligi - {fmt(R_oy)} m²x°C
-            </Text>
-          </View>
+            if (hasWindow) {
+              const n = idx++;
+              blocks.push(
+                <View key={`8.${n}`} style={{ marginTop: 8 }}>
+                  <View style={pdfStyles.row2}>
+                    <Text style={pdfStyles.labelFixSemiBold}>8.{n}  Derazalardan issiqlik yo'qotilishi</Text>
+                    <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#1080C2' }}>{fmt(Q_window, 1)} m²xSx°C/kkal</Text>
+                  </View>
+                  <Text style={pdfStyles.note2}>
+                    Q<Text style={{ fontSize: 5 }}>L</Text> = F<Text style={{ fontSize: 5 }}>L</Text>/R<Text style={{ fontSize: 5 }}>L</Text>(t<Text style={{ fontSize: 5 }}>i</Text>-t<Text style={{ fontSize: 5 }}>t</Text>) = {fmt(F_deraza, 1)}/{fmt(R_deraza)} x {t_i}-({t_e}) = {fmt(Q_window, 1)} m²xSx°C/kkal
+                  </Text>
+                  <Text style={pdfStyles.note2}>
+                    Bunda: F<Text style={{ fontSize: 5 }}>L</Text> - maydon - {fmt(F_deraza, 1)} m²;  R<Text style={{ fontSize: 5 }}>L</Text> - deraza konstruksiyasining issiqlik uzatilishiga qarshiligi - {fmt(R_deraza)} m²x°C
+                  </Text>
+                </View>
+              );
+            }
 
-          {/* 8.4 Yerdagi poldan issiqlik yo'qotilishi */}
-          <View style={{ marginTop: 8 }}>
-            <View style={pdfStyles.row2}>
-              <Text style={pdfStyles.labelFixSemiBold}>8.4  Yerdagi poldan issiqlik yo'qotilishi</Text>
-              <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#1080C2' }}>{fmt(Q_pol, 1)} m²xSx°C/kkal</Text>
-            </View>
-            <Text style={pdfStyles.note2}>
-              Q<Text style={{ fontSize: 5 }}>CG</Text> = F<Text style={{ fontSize: 5 }}>CG</Text>·1/R<Text style={{ fontSize: 5 }}>CG</Text>(t<Text style={{ fontSize: 5 }}>i</Text>-t<Text style={{ fontSize: 5 }}>t</Text>) = {fmt(F_pol, 1)} x 1/{fmt(R_pol)} x {t_i}-({t_e}) = {fmt(Q_pol, 1)} m²xSx°C/kkal
-            </Text>
-            <Text style={pdfStyles.note2}>
-              Bunda: F<Text style={{ fontSize: 5 }}>CG</Text> - maydon - {fmt(F_pol, 1)} m²;  R<Text style={{ fontSize: 5 }}>CG</Text> - pol konstruksiyasining issiqlik uzatilishiga qarshiligi - {fmt(R_pol)} m²x°C
-            </Text>
-          </View>
+            if (hasFonar) {
+              const n = idx++;
+              blocks.push(
+                <View key={`8.${n}`} style={{ marginTop: 8 }}>
+                  <View style={pdfStyles.row2}>
+                    <Text style={pdfStyles.labelFixSemiBold}>8.{n}  Fonarlar orqali issiqlik yo'qotilishi</Text>
+                    <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#1080C2' }}>{fmt(Q_fonar, 1)} m²xSx°C/kkal</Text>
+                  </View>
+                  <Text style={pdfStyles.note2}>
+                    Q<Text style={{ fontSize: 5 }}>L2</Text> = F<Text style={{ fontSize: 5 }}>L2</Text>/R<Text style={{ fontSize: 5 }}>L2</Text>(t<Text style={{ fontSize: 5 }}>i</Text>-t<Text style={{ fontSize: 5 }}>t</Text>) = {fmt(F_fonar, 1)}/{fmt(R_fonar)} x {t_i}-({t_e}) = {fmt(Q_fonar, 1)} m²xSx°C/kkal
+                  </Text>
+                  <Text style={pdfStyles.note2}>
+                    Bunda: F<Text style={{ fontSize: 5 }}>L2</Text> - maydon - {fmt(F_fonar, 1)} m²;  R<Text style={{ fontSize: 5 }}>L2</Text> - fonar konstruksiyasining issiqlik uzatilishiga qarshiligi - {fmt(R_fonar)} m²x°C
+                  </Text>
+                </View>
+              );
+            }
 
-          {/* 8.5 Chortoq orayopmasidan issiqlik yo'qotilishi */}
-          <View style={{ marginTop: 8 }}>
-            <View style={pdfStyles.row2}>
-              <Text style={pdfStyles.labelFixSemiBold}>8.5  Chortoq orayopmasidan issiqlik yo'qotilishi</Text>
-              <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#1080C2' }}>{fmt(Q_qop, 1)} m²xSx°C/kkal</Text>
-            </View>
-            <Text style={pdfStyles.note2}>
-              Q<Text style={{ fontSize: 5 }}>R</Text> = A<Text style={{ fontSize: 5 }}>R</Text>·1/R<Text style={{ fontSize: 5 }}>qop.</Text>(t<Text style={{ fontSize: 5 }}>i</Text>-t<Text style={{ fontSize: 5 }}>t</Text>) = {fmt(F_qop, 1)} x 1/{fmt(R_qop)} x {t_i}-({t_e}) = {fmt(Q_qop, 1)} m²xSx°C/kkal
-            </Text>
-            <Text style={pdfStyles.note2}>
-              Bunda: A<Text style={{ fontSize: 5 }}>R</Text> - maydon - {fmt(F_qop, 1)} m²;  R<Text style={{ fontSize: 5 }}>qop.</Text> - qoplama konstruksiyasining issiqlik uzatilishiga qarshiligi - {fmt(R_qop)} m²x°C
-            </Text>
-          </View>
+            if (hasFloor) {
+              const n = idx++;
+              blocks.push(
+                <View key={`8.${n}`} style={{ marginTop: 8 }}>
+                  <View style={pdfStyles.row2}>
+                    <Text style={pdfStyles.labelFixSemiBold}>8.{n}  Yerdagi poldan issiqlik yo'qotilishi</Text>
+                    <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#1080C2' }}>{fmt(Q_pol, 1)} m²xSx°C/kkal</Text>
+                  </View>
+                  <Text style={pdfStyles.note2}>
+                    Q<Text style={{ fontSize: 5 }}>GC</Text> = F<Text style={{ fontSize: 5 }}>GC</Text>·1/R<Text style={{ fontSize: 5 }}>GC</Text>(t<Text style={{ fontSize: 5 }}>i</Text>-t<Text style={{ fontSize: 5 }}>t</Text>) = {fmt(F_pol, 1)} x 1/{fmt(R_pol)} x {t_i}-({t_e}) = {fmt(Q_pol, 1)} m²xSx°C/kkal
+                  </Text>
+                  <Text style={pdfStyles.note2}>
+                    Bunda: F<Text style={{ fontSize: 5 }}>GC</Text> - maydon - {fmt(F_pol, 1)} m²;  R<Text style={{ fontSize: 5 }}>GC</Text> - pol konstruksiyasining issiqlik uzatilishiga qarshiligi - {fmt(R_pol)} m²x°C
+                  </Text>
+                </View>
+              );
+            }
 
-          {/* 8.6 Tashqi eshiklardan issiqlik yo'qotilishi */}
-          <View style={{ marginTop: 8 }}>
-            <View style={pdfStyles.row2}>
-              <Text style={pdfStyles.labelFixSemiBold}>8.6  Tashqi eshiklardan issiqlik yo'qotilishi</Text>
-              <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#1080C2' }}>{fmt(Q_ed, 1)} m²xSx°C/kkal</Text>
-            </View>
-            <Text style={pdfStyles.note2}>
-              Q<Text style={{ fontSize: 5 }}>D</Text> = A<Text style={{ fontSize: 5 }}>D</Text> x K<Text style={{ fontSize: 5 }}>d</Text> = {fmt(F_ed, 1)} x {K_d} = {fmt(Q_ed, 1)} m²xSx°C/kkal
-            </Text>
-            <Text style={pdfStyles.note2}>
-              Bunda: A<Text style={{ fontSize: 5 }}>D</Text> - maydon - {fmt(F_ed, 1)} m²;  K<Text style={{ fontSize: 5 }}>d</Text> = {K_d}
-            </Text>
-          </View>
+            if (hasRoof) {
+              const n = idx++;
+              blocks.push(
+                <View key={`8.${n}`} style={{ marginTop: 8 }}>
+                  <View style={pdfStyles.row2}>
+                    <Text style={pdfStyles.labelFixSemiBold}>8.{n}  Chortoq orayopmasidan issiqlik yo'qotilishi</Text>
+                    <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#1080C2' }}>{fmt(Q_qop, 1)} m²xSx°C/kkal</Text>
+                  </View>
+                  <Text style={pdfStyles.note2}>
+                    Q<Text style={{ fontSize: 5 }}>R</Text> = A<Text style={{ fontSize: 5 }}>R</Text>·1/R<Text style={{ fontSize: 5 }}>qop.</Text>(t<Text style={{ fontSize: 5 }}>i</Text>-t<Text style={{ fontSize: 5 }}>t</Text>) = {fmt(F_qop, 1)} x 1/{fmt(R_qop)} x {t_i}-({t_e}) = {fmt(Q_qop, 1)} m²xSx°C/kkal
+                  </Text>
+                  <Text style={pdfStyles.note2}>
+                    Bunda: A<Text style={{ fontSize: 5 }}>R</Text> - maydon - {fmt(F_qop, 1)} m²;  R<Text style={{ fontSize: 5 }}>qop.</Text> - qoplama konstruksiyasining issiqlik uzatilishiga qarshiligi - {fmt(R_qop)} m²x°C
+                  </Text>
+                </View>
+              );
+            }
 
-          {/* 8.7 To'suvchi konstruksiyalardan issiqlik yo'qotilishi sarfi */}
-          <View style={{ marginTop: 8 }}>
-            <View style={pdfStyles.row2}>
-              <Text style={pdfStyles.labelFixSemiBold}>8.7  To'suvchi konstruksiyalardan issiqlik yo'qotilishi sarfi</Text>
-              <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#1080C2' }}>{fmt(Q_io, 1)}</Text>
-            </View>
-            <Text style={pdfStyles.note2}>
-              Q<Text style={{ fontSize: 5 }}>io</Text> = Q<Text style={{ fontSize: 5 }}>W</Text>+Q<Text style={{ fontSize: 5 }}>L</Text>+Q<Text style={{ fontSize: 5 }}>G</Text>+Q<Text style={{ fontSize: 5 }}>CG</Text>+Q<Text style={{ fontSize: 5 }}>D</Text>+Q<Text style={{ fontSize: 5 }}>R</Text> = {fmt(Q_pol, 1)} + {fmt(Q_oy, 1)} + {fmt(Q_qop, 1)} + {fmt(Q_yo, 1)} + {fmt(Q_ed, 1)} = {fmt(Q_io, 1)} m²s°C/kkal
-            </Text>
-          </View>
+            if (hasDoor) {
+              const n = idx++;
+              blocks.push(
+                <View key={`8.${n}`} style={{ marginTop: 8 }}>
+                  <View style={pdfStyles.row2}>
+                    <Text style={pdfStyles.labelFixSemiBold}>8.{n}  Tashqi eshiklardan issiqlik yo'qotilishi</Text>
+                    <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#1080C2' }}>{fmt(Q_ed, 1)} m²xSx°C/kkal</Text>
+                  </View>
+                  <Text style={pdfStyles.note2}>
+                    Q<Text style={{ fontSize: 5 }}>D</Text> = A<Text style={{ fontSize: 5 }}>D</Text> x K<Text style={{ fontSize: 5 }}>d</Text> = {fmt(F_ed, 1)} x {K_d} = {fmt(Q_ed, 1)} m²xSx°C/kkal
+                  </Text>
+                  <Text style={pdfStyles.note2}>
+                    Bunda: A<Text style={{ fontSize: 5 }}>D</Text> - maydon - {fmt(F_ed, 1)} m²;  K<Text style={{ fontSize: 5 }}>d</Text> = {K_d}
+                  </Text>
+                </View>
+              );
+            }
 
-          {/* 8.8 Bino to'suvchi konstruksiyalari orqali me'yor belgilovchi issiqlik yo'qotilishi */}
-          <View style={{ marginTop: 8 }}>
-            <View style={pdfStyles.row2}>
-              <Text style={pdfStyles.labelFixSemiBold}>8.8  Me'yor belgilovchi issiqlik yo'qotilishi</Text>
-              <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#1080C2' }}>{fmt(Q_sh_tal, 2)}</Text>
-            </View>
-            <Text style={pdfStyles.note2}>
-              Q<Text style={{ fontSize: 5 }}>sh</Text><Text style={{ fontSize: 5 }}>tal</Text> =(t<Text style={{ fontSize: 5 }}>i</Text>-t<Text style={{ fontSize: 5 }}>t</Text>) x [1,1 F<Text style={{ fontSize: 5 }}>dev.</Text>/R<Text style={{ fontSize: 5 }}>dev.</Text> + 1,1 F<Text style={{ fontSize: 5 }}>y.o.</Text>/R<Text style={{ fontSize: 5 }}>y.o.</Text> + F<Text style={{ fontSize: 5 }}>pol</Text>/R<Text style={{ fontSize: 5 }}>pol</Text> + n F<Text style={{ fontSize: 5 }}>qop.</Text>/R<Text style={{ fontSize: 5 }}>qop.</Text> + Q<Text style={{ fontSize: 5 }}>e.d.</Text>]
+            const qParts = [];
+            if (hasWall) qParts.push(`Qw=${fmt(Q_wall, 1)}`);
+            if (hasWindow) qParts.push(`QL=${fmt(Q_window, 1)}`);
+            if (hasFonar) qParts.push(`QL2=${fmt(Q_fonar, 1)}`);
+            if (hasFloor) qParts.push(`QCG=${fmt(Q_pol, 1)}`);
+            if (hasRoof) qParts.push(`QR=${fmt(Q_qop, 1)}`);
+            if (hasDoor) qParts.push(`QD=${fmt(Q_ed, 1)}`);
 
-              = ({t_i}-({t_e})) x {'{'}1,1x{fmt(F_d, 0)}/{fmt(R_d)} + 1,1x{fmt(F_yo, 0)}/{fmt(R_yo)} + {fmt(F_pol, 0)}/{fmt(R_pol)} + 1x{fmt(F_qop, 0)}/{fmt(R_qop)} + {fmt(Q_ed, 0)}{'}'} = {fmt(Q_sh_tal, 2)}
-            </Text>
-          </View>
+            {
+              const n = idx++;
+              blocks.push(
+                <View key={`8.${n}`} style={{ marginTop: 8 }}>
+                  <View style={pdfStyles.row2}>
+                    <Text style={pdfStyles.labelFixSemiBold}>8.{n}  To'suvchi konstruksiyalardan issiqlik yo'qotilishi sarfi</Text>
+                    <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#1080C2' }}>{fmt(Q_io, 1)}</Text>
+                  </View>
+                  <Text style={pdfStyles.note2}>
+                    Q<Text style={{ fontSize: 5 }}>io</Text> = {qParts.join(" + ")} = {fmt(Q_io, 1)}
+                  </Text>
+                </View>
+              );
+            }
+
+            {
+              const n = idx++;
+              blocks.push(
+                <View key={`8.${n}`} style={{ marginTop: 8 }}>
+                  <View style={pdfStyles.row2}>
+                    <Text style={pdfStyles.labelFixSemiBold}>8.{n}  Me'yor belgilovchi issiqlik yo'qotilishi</Text>
+                    <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#1080C2' }}>{fmt(Q_sh_tal, 2)}</Text>
+                  </View>
+                  <Text style={pdfStyles.note2}>
+                    Q<Text style={{ fontSize: 5 }}>sh</Text><Text style={{ fontSize: 5 }}>tal</Text> = (t<Text style={{ fontSize: 5 }}>i</Text>-t<Text style={{ fontSize: 5 }}>t</Text>) × [ ... ] = {fmt(Q_sh_tal, 2)}
+                  </Text>
+                </View>
+              );
+            }
+
+            return blocks;
+          })()}
 
           {/* 8.9 Hisobiy issiqlikning ajralib chiqishi */}
           <View style={{ marginTop: 8 }}>
@@ -342,7 +406,7 @@ export const HeatLossPages = ({
             </View>
             <Text style={pdfStyles.note2}>
               K<Text style={{ fontSize: 5 }}>tal</Text><Text style={{ fontSize: 5 }}>m</Text>= β(F<Text style={{ fontSize: 5 }}>dev.</Text>/R<Text style={{ fontSize: 5 }}>dev.</Text>+F<Text style={{ fontSize: 5 }}>y.o.</Text>/R<Text style={{ fontSize: 5 }}>y.o.</Text>+F<Text style={{ fontSize: 5 }}>e.d.</Text>/R<Text style={{ fontSize: 5 }}>e.d.</Text>+0,8xF<Text style={{ fontSize: 5 }}>qop.</Text>/R<Text style={{ fontSize: 5 }}>qop.</Text>+0,5xF<Text style={{ fontSize: 5 }}>pol</Text>/R<Text style={{ fontSize: 5 }}>pol</Text>)/V<Text style={{ fontSize: 5 }}>h</Text>
-              = {beta}({fmt(F_d, 0)}/{fmt(R_d)}+{fmt(F_yo, 0)}/0,7+{fmt(F_ed, 0)}/0,7+0,8x{fmt(F_qop, 0)}/{fmt(R_qop)}+0,5x{fmt(F_pol, 0)}/{fmt(R_pol)})/{fmt(V_h_num, 0)} = {fmt(K_tal_m, 2)} Vt/m²°C
+              = {beta}({fmt(F_d, 0)}/{fmt(R_d)}+{fmt(F_deraza, 0)}/0,7+{fmt(F_ed, 0)}/0,7+0,8x{fmt(F_qop, 0)}/{fmt(R_qop)}+0,5x{fmt(F_pol, 0)}/{fmt(R_pol)})/{fmt(V_h_num, 0)} = {fmt(K_tal_m, 2)} Vt/m²°C
             </Text>
             <Text style={[pdfStyles.note2, { color: '#1080c2' }]}>
               Turar joy binolari uchun β=1,13, jamoat binolari uchun β=1,1
